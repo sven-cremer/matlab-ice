@@ -167,7 +167,7 @@ for k=1:N
     
     %--------------------------
     % INNER LOOP
-    [tDel,xDel]= ode45(@robnn2augNeuroAdaptiveJntSpModelCartSpIn, [tStart tStop], x0);
+    [tDel,xDel]= ode45(@robotModel, [tStart tStop], x0);
 
     W = W + W_dot*Ts;
     V = V + V_dot*Ts;

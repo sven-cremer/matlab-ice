@@ -16,7 +16,7 @@
 %------------- BEGIN CODE --------------
 
 % file robout2layerJntSpModelJntSpIn.m, to be called by MATLAB function ode23
-function xdot= robnn2augNeuroAdaptiveJntSpModelCartSpIn( t, x )
+function xdot= robotModel( t, x )
 
 % -----------------------------------------------------
 % ARM PARAMETERS

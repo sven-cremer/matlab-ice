@@ -43,7 +43,8 @@ load('sim1.mat')
     
     x1 = z_sta(:,1);
     x2 = z_sta(:,2);
-    for i=1:length(x1)
+    [M,~] = size(x1);
+    for i=1:M
         
         plot(x1(i),x2(i),'rx')  
         pause(0.01)
