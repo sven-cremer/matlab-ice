@@ -18,11 +18,15 @@
 
 clear all; close all; clc;
 
+global tau
+
+%--------------------------
 % Simulation time
 t0 = 0;
 tf = 10;
 Ts = 0.05;   % Step
 
+%--------------------------
 % Arm parameters
 global mass length gravity
 
@@ -30,149 +34,169 @@ mass = [1;1];
 length = [1;1];
 gravity = 9.8;
 
+%--------------------------
 % NN size
 global input output hidden
 input  = 18;
 output = 2;
 hidden = 20;
 
-% Discrete model states
-global q_m_z  ;
-global qd_m_z ;
-global qdd_m_z;
-
-% -----------------------------------------------------
-% reference Input
-inputFlag = 1;
-
-refIn = [ 0.5  1.5 ]';
-
-q0 = robotInverseKinematics(refIn)
+global W V
+global W_dot V_dot
+W = zeros( hidden, output );
+V = zeros( input , hidden );
 
 %--------------------------
-q_m_z     = refIn ; % [ 0 0 ]'; 
-q_m_z_1   = q_m_z ; % [ 0 0 ]'; % q0 ;
-q_m_z_2   = q_m_z ; % [ 0 0 ]'; % q0 ;
+% Discrete Cartesian model states
+global x_m_ xd_m_ xdd_m_
 
-qd_m_z    = [ 0 0 ]' ;
-qd_m_z_1  = [ 0 0 ]' ;
-qd_m_z_2  = [ 0 0 ]' ;
+% Reference Input
+inputFlag = 1;
+x_ref = [ 0.5  1.5 ]';
 
-qdd_m_z   = [ 0 0 ]' ;
-qdd_m_z_1 = [ 0 0 ]' ;
-qdd_m_z_2 = [ 0 0 ]' ;
+x_m_    = x_ref;	% [ 0 0 ]'; 
+x_m_1   = x_m_ ;	% [ 0 0 ]'; % q0 ;
+x_m_2   = x_m_ ;	% [ 0 0 ]'; % q0 ;
 
-Wini = zeros( hidden*output, 1 );
-Vini = zeros( input*hidden , 1 );
+xd_m_   = [ 0 0 ]' ;
+xd_m_1  = [ 0 0 ]' ;
+xd_m_2  = [ 0 0 ]' ;
+
+xdd_m_  = [ 0 0 ]' ;
+xdd_m_1 = [ 0 0 ]' ;
+xdd_m_2 = [ 0 0 ]' ;
+
+%--------------------------
+
+q0 = robotInverseKinematics(x_ref);
+qd0 = [0 0]';
+
+xC0  = robotForwardKinematics(q0);
+xdC0 = [0;0];
 
 x0= [  q0(1)        ; %  1 q1
        q0(2)        ; %  2 q2
-       0            ; %  3 qd1
-       0            ; %  4 qd2
-       Wini         ; %
-       Vini         ; %
-       ];
+       qd0(1)           ; %  3 qd1
+       qd0(2)           ]; %  4 qd2
+%        Wini         ; %
+%        Vini         ; %
+%        ];
 
-z_mdl = [q_m_z' qd_m_z' qdd_m_z']; % model
+N = (tf-t0)/Ts;
 
-xC0  = robotForwardKinematics(q0);
-xdC0 = [0;0]
+data.t      = zeros(N,1);
+data.xC     = zeros(N,output);
+data.xdC    = zeros(N,output);
+data.q      = zeros(N,output);
+data.qd     = zeros(N,output);
+data.normW  = zeros(N,1);
+data.normV  = zeros(N,1);
+data.x_m    = zeros(N,output);
+data.xd_m   = zeros(N,output);
+data.xdd_m  = zeros(N,output);
+data.tau    = zeros(N,output);
 
-% tspan = t0:0.0005:tfin;q0(2)
-%tspan = [0 Ts];
-% t = t0:T:tfin;
-% tDel = 0;
-% xDel = x0';
-% qdd_m = [];
-% mod_yddA = [];
-% time = [];
+% z_sta = zeros(N,nDataPoints);    % Sampled states
+% z_mdl = zeros(N,3*output);       % Model states
+% z_t   = zeros(N,1);              % Time vector
 
-% adaptOn = 0;
-Fsamples = (tf-t0)/Ts;
-nDataPoints = output*hidden+hidden*input+2*output;
+t = []; % ODE simulation time vector
+x = []; % ODE simulation states
 
-z_sta = zeros(Fsamples,nDataPoints);
-z_t = zeros(Fsamples,1);
+%--------------------------
 
-t = [];
-x = [];
+% z_sta(1,:) = [xC0' xdC0' q0' qd0' norm(W) norm(V)];
+% z_mdl(1,:) = [x_m_' xd_m_' xdd_m_'];
+% z_t(1,1)   = 0;
 
-z_sta(1,:) = [xC0' xdC0' x0(5:end)']; % sampled states
-z_t(1,1)   = 0;
+q = q0;
+qd= qd0;
+xC = xC0;
+xdC = xdC0;
+tau = [0;0];
 
 tStart = t0;
 tStop = tStart + Ts;
 
-for k=1:Fsamples
+for k=1:N
     
-    % Input q_r
-    if mod(k,Fsamples/5) == 0
-        %inputFlag = xor(inputFlag, 1);
+    %--------------------------
+    % Store data
+    data.t      (k,:) = tStop;
+    data.xC     (k,:) = xC';
+    data.xdC    (k,:) = xdC';
+    data.q      (k,:) = q';
+    data.qd     (k,:) = qd';
+    data.normW  (k,:) = norm(W);
+    data.normV  (k,:) = norm(V);
+    data.x_m    (k,:) = x_m_';
+    data.xd_m   (k,:) = xd_m_';
+    data.xdd_m  (k,:) = xdd_m_';
+    data.tau    (k,:) = tau';
+    
+%         z_mdl(k,:) = [ x_m_' xd_m_' xdd_m_' ];
+%         z_sta(k,:) = [xC' xCd' q' qd' norm(W) norm(V)];
+   
+    %--------------------------
+    % OUTER LOOP
+    % Insert your own model traj generator here RLS/MRAC/RL
+    
+    % Change x_ref every 40 samples
+    if mod(k,N/5) == 0
         inputFlag = inputFlag + 1;
     end
     
-    if inputFlag == 1
-        refIn = [ 0.5  1.5 ]';
+    switch inputFlag
+        case 1
+            x_ref = [ 0.5  1.5 ]';
+        case 2
+            x_ref = [ 1 1.5 ]';
+        case 3
+            x_ref = [ 1  1 ]';
+        case 4
+            x_ref = [ 0.5  1 ]';
+            inputFlag = 1;
+        otherwise
+            disp('Case for inputFlag not defined!')
     end
     
-    if inputFlag == 2
-        refIn = [ 1 1.5 ]';
-    end
-    
-    if inputFlag == 3
-        refIn = [ 1  1 ]';
-    end
-    
-    if inputFlag == 4
-        refIn = [ 0.5  1 ]';
-        inputFlag = 0;
-    end
-    
-%     if progressFlag == 1
-        clc
-        percent_complete = k/Fsamples*100;
-        fprintf('Percent complete: %.0f\n',percent_complete)
-%     end
-
-
-    % OUTER LOOP
     % Simple model trajectory
-    % Insert your own model traj generator here RLS/MRAC/RL
-    q_m_z       = ([0.5  1.5].*cos([tStart, tStart]))' ;
+    %x_m_ = ([0.5  1.5].*cos([tStart, tStart]))' ;
+    x_m_ = [0.5;1.5].*cos(tStart) ;
+    %x_m_ = x_ref;
     
-    %%%
-
+    %--------------------------
     % INNER LOOP
     [tDel,xDel]= ode45(@robnn2augNeuroAdaptiveJntSpModelCartSpIn, [tStart tStop], x0);
 
+    W = W + W_dot*Ts;
+    V = V + V_dot*Ts;
+    
     tStart = tDel(end);
     tStop = tStart + Ts;
     x0 = xDel(end,:);
     
     t  = [ t tDel' ];
     x  = [ x; xDel ];
-    z_t(k,:) = tStop ;
 
-    % Backward difference
-    
+    % Backward difference  
     if( k > 1 )
-        qd_m_z  = (q_m_z - q_m_z_1)/Ts   ;
+        xd_m_  = (x_m_ - x_m_1)/Ts ;
     end
     
     if( k > 2 )
-        qdd_m_z = (qd_m_z - qd_m_z_1)/Ts ;
+        xdd_m_ = (xd_m_ - xd_m_1)/Ts ;
     end
 
-    q_m_z_1   = q_m_z    ;
-    q_m_z_2   = q_m_z_1  ;
+    % Store values
+    x_m_1   = x_m_   ; 
+    x_m_2   = x_m_1  ;  
 
-    qd_m_z_1  = qd_m_z   ;
-    qd_m_z_2  = qd_m_z_1 ;
+    xd_m_1  = xd_m_  ;
+    xd_m_2  = xd_m_1 ;
 
-    qdd_m_z_1 = qdd_m_z  ;
-    qdd_m_z_2 = qdd_m_z_1;
-
-    z_mdl(k,:) = [ q_m_z' qd_m_z' qdd_m_z' ];
+    xdd_m_1 = xdd_m_  ;
+    xdd_m_2 = xdd_m_1;
 
     % Robot states
     q  = [x0(1) x0(2)]';
@@ -185,9 +209,14 @@ for k=1:Fsamples
     xC = robotForwardKinematics(q);
     
     xCd= J*qd;
+   
+    % Display progress
+    if(mod(k,5)==0)
+        clc
+        percent_complete = k/N*100;
+        fprintf('Percent complete: %.0f\n',percent_complete)
+    end
     
-    z_sta(k,:) = [xC' xCd' x0(5:end) ];
-
 end
 
 save('sim1.mat')

@@ -1,6 +1,8 @@
 function q = robotInverseKinematics(x)
 global length
 
+q = zeros(2,1);
+
 % Arm parameters
 a1 = length(1);
 a2 = length(2);

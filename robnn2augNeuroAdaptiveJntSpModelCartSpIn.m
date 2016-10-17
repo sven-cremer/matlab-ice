@@ -31,13 +31,11 @@ a2 = length(2);
 % MODEL STATE
 
 % Discrete model states
-global q_m_z   ;
-global qd_m_z  ;
-global qdd_m_z ;
+global x_m_ xd_m_ xdd_m_
 
-q_m   = q_m_z   ;
-qd_m  = qd_m_z  ;
-qdd_m = qdd_m_z ;
+q_m   = x_m_   ;
+qd_m  = xd_m_  ;
+qdd_m = xdd_m_ ;
 
 % -----------------------------------------------------
 % ROBOT STATE
@@ -80,6 +78,8 @@ Gx = JtransInv*Gq;
 % -----------------------------------------------------
 % CONTROLLER
 global input output hidden
+global W V
+global W_dot V_dot
 
     % NN control input
     
@@ -98,13 +98,13 @@ global input output hidden
         r  = ep  + lam*e ; % this is the sliding error
     
     % W and V
-        nnStart = 5;
-        
-        endW   = (nnStart + hidden*output-1);
-        startV = endW + 1;
-        endV   = startV + input*hidden - 1;
-        W      = reshape(x(nnStart:endW    ), output, hidden)';
-        V      = reshape(x(startV:endV), input , hidden) ;
+%         nnStart = 5;
+%         
+%         endW   = (nnStart + hidden*output-1);
+%         startV = endW + 1;
+%         endV   = startV + input*hidden - 1;
+%         W      = reshape(x(nnStart:endW    ), output, hidden)';
+%         V      = reshape(x(startV:endV), input , hidden) ;
         
     % robustifying term
         Z    = [ W zeros(size(W, 1), size(V, 2)); zeros(size(V, 1), size(W, 2)) V ];
@@ -128,7 +128,7 @@ global input output hidden
 
 % -----------------------------------------------------
      % Computed torques
-
+global tau
 %        % PD CT control torques
 %             f_true = M11*s1 + M12*s2 + N1 ;
 %             f_true = M12*s1 + M22*s2 + N2 ;
@@ -164,12 +164,12 @@ global input output hidden
 % -----------------------------------------------------
 
     % state equations
-    xdot= [ x(3)                                  ; %  1 q1
-            x(4)                                  ; %  2 q2
+    xdot= [ qd(1)                                  ; %  1 q1
+            qd(2)                                  ; %  2 q2
             qdd(1)                                ; %  3 qd1
-            qdd(2)                                ; %  4 qd2
-            reshape( W_dot', 1, numel(W_dot))'    ; % W = Wdot*dt + W?
-            reshape( V_dot , 1, numel(V_dot))'   ]; % V = Vdot*dt + V?
+            qdd(2)                                ]; %  4 qd2
+%             reshape( W_dot', 1, numel(W_dot))'    ; % W = Wdot*dt + W?
+%             reshape( V_dot , 1, numel(V_dot))'   ]; % V = Vdot*dt + V?
 
 end     
 
