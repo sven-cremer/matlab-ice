@@ -16,12 +16,9 @@
 
 % file robout2layerJntSpModelJntSpIn.m
 function [tau_h,e]= robout2layerJntSpModelJntSpIn( t, x, z_mdl, z_sta, z_t )
-
+global input output hidden
 
 [nSteps, nData] =  size(x);
-        input  = x(1,5)            ; % 5 input  18 
-        output = x(1,6)            ; % 6 output 2
-        hidden = x(1,7)            ; % 7 hidden 20 
 
 % Force input
     tau_h = [ x(:, 9) x(:, 10) ];
@@ -30,7 +27,7 @@ function [tau_h,e]= robout2layerJntSpModelJntSpIn( t, x, z_mdl, z_sta, z_t )
     e = x(:,1:2) - x(:, 5: 6) ;
 
 % NN weights
-   nnStart = 8;
+   nnStart = 5;
    endW   = (nnStart + hidden*output-1);
    startV = endW + 1;
    endV   = startV + input*hidden - 1;
@@ -59,7 +56,7 @@ function [tau_h,e]= robout2layerJntSpModelJntSpIn( t, x, z_mdl, z_sta, z_t )
         pause(0.01)
     end
     
-    return
+    %return
     
     
     %-------------------------------
