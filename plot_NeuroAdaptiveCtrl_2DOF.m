@@ -5,9 +5,15 @@ load('sim1.mat')
 
 %------------- BEGIN CODE --------------
 
+m1 = rMass(1);
+m2 = rMass(2);
+a1 = rLength(1);
+a2 = rLength(2);
+
 N = size(data.t,1);
 
 [nSteps, nDataPoints] =  size(x);
+
 
 %% NN weights
 figure;
@@ -34,8 +40,8 @@ figure;
 hold on;
 plot(data.t,data.tau(:,1),'b-')
 plot(data.t,data.tau(:,2),'r-')
-plot(data.t,data.tau_exp(:,1),'g--')
-plot(data.t,data.tau_exp(:,2),'k:')
+%plot(data.t,data.tau_exp(:,1),'g--')
+%plot(data.t,data.tau_exp(:,2),'k:')
 title('Input Force and Actual vs Model Cartesian Positions');
 xlabel('Time (s)');
 ylabel('Position (m)');
@@ -93,31 +99,62 @@ figure;
 plot(t',x)
 legend('x','y', 'dx','dy');
 
+return
+
 %% Animation
 figure;
 hold on;
+grid on;
 x_min = min(data.xC(:,1)); x_max = max(data.xC(:,1));
 y_min = min(data.xC(:,2)); y_max = max(data.xC(:,2));
 
-b = 0.05;
+b = 0.75;
+%xlim([(1-b)*x_min (1+b)*x_max]);
+%ylim([(1-b)*y_min (1+b)*y_max]);
 
-xlim([(1-b)*x_min (1+b)*x_max]);
-ylim([(1-b)*y_min (1+b)*y_max]);
+xlabel('x');ylabel('y');zlabel('z');
+z = 0;
+
+xlim([-1.2 1.2])
+ylim([-2 2])
+view([-60 80])
+
 for i=2:N
-
-    plot(data.xC(i,1),data.xC(i,2),'rx')
-    plot(data.x_m(i,1),data.x_m(i,2),'bo')
     
+    z = z + i*0.1;
+    zp = z - 100;
+    if(zp<0)
+        zp=0;
+    end
+    zlim([zp z]);   % TODO use buffer instead + plot state function
+    
+    z2 = z*ones(1,2);
+    
+    % Robot
+    q = data.q(i,:);
+    lx01 = [0, a1*cos(q(1))];
+    ly01 = [0, a1*sin(q(1))];
+    lx12 = [a1*cos(q(1)),data.xC(i,1)];
+    ly12 = [a1*sin(q(1)),data.xC(i,2)];
+    plot3(lx01,ly01,z2,'k:')
+    plot3(lx12,ly12,z2,'k:')
+    plot3([lx01,lx12(1)], [ly01,ly12(1)], [z2, z2(1)],'go','MarkerSize',10)
+    
+    % End efftor
+    plot3(data.xC(i,1),data.xC(i,2),z2,'rx')
+    plot3(data.x_m(i,1),data.x_m(i,2),z2,'bo')
+    
+    % Path taken
     lx = [data.xC(i-1,1), data.xC(i,1)];
     ly = [data.xC(i-1,2), data.xC(i,2)];
     
     lx_m = [data.x_m(i-1,1), data.x_m(i,1)];
     ly_m = [data.x_m(i-1,2), data.x_m(i,2)];
     
-    plot(lx_m,ly_m,'b:')
-    plot(lx,ly,'r-')
+    plot3(lx_m,ly_m,z2,'b:')
+    plot3(lx,ly,z2,'r:')
     
-    pause(0.01)
+    pause(0.1)
 end
 %return
 
