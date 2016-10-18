@@ -1,13 +1,7 @@
 
 clear all; close all; clc;
 
-input  = 18;
-output = 2;
-hidden = 20;
-
 load('sim1.mat')
-
-%[tau_h,e]= robout2layerJntSpModelCartSpIn( t, x, z_mdl, z_sta, z_t );
 
 %------------- BEGIN CODE --------------
 
@@ -15,9 +9,7 @@ N = size(data.t,1);
 
 [nSteps, nDataPoints] =  size(x);
 
-
-%% -------------------------------
-% NN weights
+%% NN weights
 figure;
 plot(data.t, data.normW)
 title('Norm of outer weights W')
@@ -26,8 +18,7 @@ plot(data.t, data.normV)
 title('Norm of inner weights V')
 %legend('W','V')
 
-%% -------------------------------
-% Tracking errors between model and real robot
+%% Tracking errors between model and real robot
 e = data.xC - data.x_m;
 
 figure; hold on;
@@ -38,8 +29,7 @@ ylabel('Error (m)');
 legend('e1','e2');
 grid on;
 
-%% -------------------------------
-% Torque
+%% Torque
 figure;
 hold on;
 plot(data.t,data.tau(:,1),'b-')
@@ -56,8 +46,7 @@ y_max = (1+b)*max(max(data.tau));
 y_min = (1+b)*min(min(data.tau));
 ylim([y_min y_max])
 
-%% -------------------------------
-% Joint positions 
+%% Joint positions 
 figure; hold on; grid on;
 plot(data.t,data.q(:,1),'b-')
 plot(data.t,data.q(:,2),'r-')
@@ -76,8 +65,7 @@ legend('q_1','q_2', 'qdot_{1}','qdot_{2}');
 % ylabel('Position (m)');
 % legend('qdot_{1}','qdot_{2}');
 
-%% -------------------------------
-% Cartesian positions
+%% Cartesian positions
 figure; hold on; grid on;
 plot(data.t,data.xC(:,1),'b-')
 plot(data.t,data.xC(:,2),'r-')
@@ -88,8 +76,7 @@ xlabel('Time (s)');
 ylabel('Position (m)');
 legend('x','y', 'x_r','y_r');
 
-%% -------------------------------
-% Cartesian velocity
+%% Cartesian velocity
 figure; hold on; grid on;
 plot(data.t,data.xdC(:,1),'b-')
 plot(data.t,data.xdC(:,2),'r-')
@@ -101,14 +88,12 @@ ylabel('Position (m)');
 legend('x_d','y_d', 'x_r','y_r');
 
 
-%% -------------------------------
-% ODE data
+%% ODE data
 figure;
 plot(t',x)
 legend('x','y', 'dx','dy');
 
-%% -------------------------------
-% Animation
+%% Animation
 figure;
 hold on;
 x_min = min(data.xC(:,1)); x_max = max(data.xC(:,1));
@@ -132,13 +117,14 @@ for i=2:N
     plot(lx_m,ly_m,'b:')
     plot(lx,ly,'r-')
     
-    pause(0.05)
+    pause(0.01)
 end
 %return
 
 return
 
 %% -------------------------------
+
 % Cartesian positions
 figure; hold on; grid on;
 plot(data.t,data.xC(:,1),'b-')

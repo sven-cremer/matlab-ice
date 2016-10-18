@@ -1,21 +1,25 @@
-% Author:  Isura Ranatunga
+% Authors: Isura Ranatunga
+%          Sven Cremer
 % University of Texas at Arlington
 % Dept. of Electrical Engineering
 % UT Arlington Research Institute
 %
-% email address: isura@ieee.org
+% Email address: isura@ieee.org
+%                sven.cremer@mavs.uta.edu
+%
 % Website: isura.me
-% Created:  04/28/2014
-% Modified: 04/06/2014
-%           10/14/2016 - Sven Cremer
+%          svencremer.com
+%
+% Created:  04/28/2014 - IR
+% Modified: 04/06/2014 - IR
+%           10/14/2016 - SC
 %
 % Inner and outer loop
-% MRAC Neuroadaptive Control of planar 2 link RR arm
-% Inner-loop Model Reference Neuroadaptive controller
-% Outer-loop ??
+% MRAC Neuroadaptive Control of planar 2-link RR arm
+% Inner-loop: Model Reference Neuroadaptive controller
+% Outer-loop: ?
 
 %------------- BEGIN CODE --------------
-
 clear all; close all; clc;
 
 global tau tau_exp

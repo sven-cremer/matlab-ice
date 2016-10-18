@@ -1,85 +1,35 @@
-% Author: Isura Ranatunga,
+% Authors: Isura Ranatunga
+%          Sven Cremer
 % University of Texas at Arlington
 % Dept. of Electrical Engineering
 % UT Arlington Research Institute
 %
-% email address: isura@ieee.org
+% Email address: isura@ieee.org
+%                sven.cremer@mavs.uta.edu
+%
 % Website: isura.me
-% Created: 08/16/2013
-% Modified: 04/28/2014
+%          svencremer.com
 %
-% Neuroadaptive Control of planar 2 link RR arm
-% using 2 layer Augmented Neural Network
-% Cartesian Space Model Joint Space Input (Torque)
+% Created:  08/16/2013 - IR
+% Modified: 04/28/2014 - IR
+%           10/17/2016 - SC
 %
+% Cartesian Space Model of a planar 2-link RR arm to be called by MATLAB
+% function ode23 or ode45
 
 %------------- BEGIN CODE --------------
 
-% file robout2layerJntSpModelJntSpIn.m, to be called by MATLAB function ode23
-function xdot= robotModel( t, x )
+function xdot = robotModel( t, x )
 
-% -----------------------------------------------------
+% --------------------------------------
 % ROBOT STATE
+global tau
 
-% Robot states
 q  = [x(1) x(2)]';
 qd = [x(3) x(4)]';
 
-
-% -----------------------------------------------------
-global tau
-%{
-% ROBOT DYNAMICS
-
-% Jacobians
-Jinv = pinv(J);             % Inverse
-Jtrans = J';                % Transpose
-JtransInv = pinv(Jtrans);   % Transpose inverse
-
-% Jacobian dot
-Jdot = [ - cos(q(1))*a1*qd(1) - a2*cos(q(1) + q(2))*(qd(1) + qd(2)), ...
-    - a2*cos(q(1) + q(2))*(qd(1) + qd(2))  ;
-    
-    -sin(q(1))*a1*qd(1) - a2*sin(q(1) + q(2))*(qd(1) + qd(2)) , ...
-    -a2*sin(q(1) + q(2))*(qd(1) + qd(2)) ];
-      
-% Joint space dynamics
-[Mq,Cq,Gq] = robotDynamics(x(1:2), x(3:4));
-
-% Cartesian space dynamics
-Mx = JtransInv*Mq*Jinv;
-Cx = JtransInv*( Cq - Mq*Jinv*Jdot )*Jinv;
-Gx = JtransInv*Gq;
-
-% -----------------------------------------------------
-% CONTROLLER
-
-% NN controller
-fc = neuroAdaptiveController(q, qd, xC, xdC, x_m_, xd_m_, xdd_m_,dt);
-
-% Computed torques
-global tau tau_exp
-tau     =  Jtrans*fc;
-tau_exp =  Jtrans*fc_exp;
-
-% -----------------------------------------------------
-% Torque saturation
-tau_max = 35;
-% [v_max, i_max] = max(abs(tau));
-% if( v_max > tau_max)
-%     tau = tau.*(tau_max/tau(i_max));
-% end
-
-if( abs(tau(1)) > tau_max)
-    tau(1) = tau(1).*(tau_max/abs(tau(1)));
-end
-if( abs(tau(2)) > tau_max)
-    tau(2) = tau(2).*(tau_max/abs(tau(2)));
-end
-%}
-% -----------------------------------------------------
+% --------------------------------------
 % ROBOT ARM DYNAMICS SIMULATION
-% -----------------------------------------------------
 
 [Mq,Cq,Gq] = robotDynamics(q, qd);
 
@@ -91,14 +41,12 @@ qdd = inv(Mq)*(-Cq*qd-Gq+tau);
 %         tau1 = tau1 + taud;
 %         tau1 = tau1 + taud;
        
-% qdd joint acceleration
+% Human disturbance
 %         tau_hum = Jtrans*f_hum;
-%         qdd(1) = MI11*(-N1 + tau(1)) + MI12*(-N2 + tau(2) + tau_hum(1));
-%         qdd(2) = MI12*(-N1 + tau(1)) + MI22*(-N2 + tau(2) + tau_hum(2));
-        
-% -----------------------------------------------------
 
-% State equations
+% --------------------------------------
+
+% Update state equation
 xdot= [ qd(1)  ;
         qd(2)  ;
         qdd(1) ;

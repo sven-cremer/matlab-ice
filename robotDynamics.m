@@ -33,7 +33,4 @@ G1 = (m1 + m2)*g*a1*cos(q1) + m2*g*a2*cos(q1+q2);
 G2 = m2*g*a2*cos(q1 + q2);
 Gq = [G1; G2];
 
-% Arm dynamics
-%qddot = inv(Mq)*(-Cq*qdot-Gq+tau);
-
 end
