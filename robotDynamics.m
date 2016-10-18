@@ -1,11 +1,11 @@
 function [Mq,Cq,Gq] = robotDynamics(q, qdot)
-global mass length gravity
+global rMass rLength gravity
 
 % Arm parameters
-m1 = mass(1);       % Center of mass is located at a1, i.e. ac1=a1
-m2 = mass(2);
-a1 = length(1);
-a2 = length(2);
+m1 = rMass(1);       % Center of mass is located at a1, i.e. ac1=a1
+m2 = rMass(2);
+a1 = rLength(1);
+a2 = rLength(2);
 g  = gravity;
 
 % Input variables

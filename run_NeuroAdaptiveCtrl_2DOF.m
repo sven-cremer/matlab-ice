@@ -32,10 +32,10 @@ Ts = 0.01;   % Controller time step
 
 %--------------------------
 % Arm parameters
-global mass length gravity
+global rMass rLength gravity
 
-mass = [1.0;1.0];
-length = [1;1];
+rMass = [1.0;1.0];
+rLength = [1;1];
 gravity = 9.8;
 
 %--------------------------

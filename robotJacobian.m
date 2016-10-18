@@ -1,9 +1,9 @@
 function J = robotJacobian(q)
-global length
+global rLength
 
 % Arm parameters
-a1 = length(1);
-a2 = length(2);
+a1 = rLength(1);
+a2 = rLength(2);
 
 % Analytical Jacobian
 J = [ - sin(q(1))*a1 - a2*sin(q(1) + q(2)), - a2*sin(q(1) + q(2))  ;
