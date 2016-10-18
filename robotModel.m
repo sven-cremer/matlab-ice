@@ -18,29 +18,6 @@
 % file robout2layerJntSpModelJntSpIn.m, to be called by MATLAB function ode23
 function xdot= robotModel( t, x )
 
-global Mx Cx Gx fc_exp  % Used in neuroAdpative controller for comparision
-
-global t_prev
-if(~isempty(t_prev))
-    dt = t-t_prev;
-else
-    dt = 0;
-end
-
-% -----------------------------------------------------
-% ARM PARAMETERS
-global length
-a1 = length(1);
-a2 = length(2);
-
-% -----------------------------------------------------
-% MODEL STATE
-global x_m_ xd_m_ xdd_m_
-
-q_m   = x_m_   ;
-qd_m  = xd_m_  ;
-qdd_m = xdd_m_ ;
-
 % -----------------------------------------------------
 % ROBOT STATE
 
@@ -48,16 +25,10 @@ qdd_m = xdd_m_ ;
 q  = [x(1) x(2)]';
 qd = [x(3) x(4)]';
 
-% Forward kinematics
-xC = robotForwardKinematics(q);
-
-% Analytical Jacobian
-J = robotJacobian(q);
-
-xdC= J*qd;
 
 % -----------------------------------------------------
-% TODO: move -->
+global tau
+%{
 % ROBOT DYNAMICS
 
 % Jacobians
@@ -105,11 +76,13 @@ end
 if( abs(tau(2)) > tau_max)
     tau(2) = tau(2).*(tau_max/abs(tau(2)));
 end
-% TODO: move <--
+%}
 % -----------------------------------------------------
 % ROBOT ARM DYNAMICS SIMULATION
 % -----------------------------------------------------
-    
+
+[Mq,Cq,Gq] = robotDynamics(q, qd);
+
 % Arm dynamics
 qdd = inv(Mq)*(-Cq*qd-Gq+tau);
          
@@ -131,6 +104,5 @@ xdot= [ qd(1)  ;
         qdd(1) ;
         qdd(2) ];
 
-t_prev = t;
 end
 %-------------- END CODE ---------------

@@ -24,7 +24,7 @@ global tau tau_exp
 % Simulation time
 t0 = 0;
 tf = 10;
-Ts = 0.05;   % Step
+Ts = 0.01;   % Controller time step
 
 %--------------------------
 % Arm parameters
@@ -36,13 +36,11 @@ gravity = 9.8;
 
 %--------------------------
 % NN size
-global input output hidden
 input  = 18;
 output = 2;
 hidden = 20;
 
 global W V
-global W_dot V_dot
 W = zeros( hidden, output );
 V = zeros( input , hidden );
 
@@ -74,13 +72,10 @@ xdC0 = [0;0];
 
 x0= [  q0(1)        ; %  1 q1
        q0(2)        ; %  2 q2
-       qd0(1)           ; %  3 qd1
-       qd0(2)           ]; %  4 qd2
-%        Wini         ; %
-%        Vini         ; %
-%        ];
+       qd0(1)       ; %  3 qd1
+       qd0(2)       ]; %  4 qd2
 
-N = (tf-t0)/Ts;
+N = (tf-t0)/Ts;     % Data samples
 
 data.t       = zeros(N,1);
 data.xC      = zeros(N,output);
@@ -93,11 +88,7 @@ data.x_m     = zeros(N,output);
 data.xd_m    = zeros(N,output);
 data.xdd_m   = zeros(N,output);
 data.tau     = zeros(N,output);
-data.tau_exp = zeros(N,output);     % Actual
-
-% z_sta = zeros(N,nDataPoints);    % Sampled states
-% z_mdl = zeros(N,3*output);       % Model states
-% z_t   = zeros(N,1);              % Time vector
+data.tau_exp = zeros(N,output);     % Expected value
 
 t = []; % ODE simulation time vector
 x = []; % ODE simulation states
@@ -166,19 +157,39 @@ for k=1:N
     %--------------------------
     % INNER LOOP
     
-    %f_c = neuroAdaptiveController(q, qd, x, xd, x_m, xd_m, xdd_m);
+    % Forward kinematics
+    xC = robotForwardKinematics(q);
     
-    % tau
-    % W, V update
+    % Analytical Jacobian
+    J = robotJacobian(q);
+    xdC= J*qd;
+    
+    % NN controller
+    [fc,fc_exp] = neuroAdaptiveController(q, qd, xC, xdC, x_m_, xd_m_, xdd_m_,Ts);
+
+    % Computed torques
+    Jtrans = J';
+    tau     =  Jtrans*fc;
+    tau_exp =  Jtrans*fc_exp;
+    
+    % Torque saturation
+    tau_max = 100;
+    % [v_max, i_max] = max(abs(tau));
+    % if( v_max > tau_max)
+    %     tau = tau.*(tau_max/tau(i_max));
+    % end
+    
+    if( abs(tau(1)) > tau_max)
+        tau(1) = tau(1).*(tau_max/abs(tau(1)));
+    end
+    if( abs(tau(2)) > tau_max)
+        tau(2) = tau(2).*(tau_max/abs(tau(2)));
+    end
     
     %--------------------------
     % SIMMULATION STEP
-    global t_prev
-    t_prev = 0;
+    
     [tDel,xDel]= ode45(@robotModel, [tStart tStop], x0);
-
-%     W = W + W_dot*Ts;
-%     V = V + V_dot*Ts;
     
     tStart = tDel(end);
     tStop = tStart + Ts;
@@ -200,17 +211,9 @@ for k=1:N
     xd_m_1  = xd_m_  ;
     xdd_m_1 = xdd_m_ ;
 
-    % Robot states
+    % Update robot state
     q  = [x0(1) x0(2)]';
     qd = [x0(3) x0(4)]';
-    
-    % Analytical Jacobian
-    J = robotJacobian(q);
-    
-    % Forward kinematics
-    xC = robotForwardKinematics(q);
-    
-    xdC= J*qd;
    
     % Display progress
     if(mod(k,5)==0)
