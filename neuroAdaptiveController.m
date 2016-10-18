@@ -1,8 +1,10 @@
-function fc = neuroAdaptiveController(q, qd, x, xd, x_m, xd_m, xdd_m, dt)
+function [fc,fc_exp] = neuroAdaptiveController(q, qd, x, xd, x_m, xd_m, xdd_m, dt)
 
-global input output hidden
 global W V
-global W_dot V_dot
+
+input  = size(V,1);
+hidden = size(V,2);
+output = size(W,2);
 
 % NN controller parameters
 Kv     = 10*eye(output)  ;
@@ -32,9 +34,8 @@ f_hat = W'*sigmoid(V'*y);
 % Control force
 fc = Kv*r + f_hat - v;
 
-% Expected control force
-global Mx Cx Gx fc_exp
-% This is the actual function to be approximated
+% Expected Control force
+[Mx,Cx,Gx] = robotDynamicsCartesian(q, qd);
 f_act = Mx*( xdd_m + lam*ed ) + Cx*( xd_m + lam*e ) + Gx;
 fc_exp = Kv*r + f_act - v;
 
