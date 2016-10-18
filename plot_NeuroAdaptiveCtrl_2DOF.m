@@ -1,4 +1,4 @@
-%%
+
 clear all; close all; clc;
 
 input  = 18;
@@ -11,84 +11,164 @@ load('sim1.mat')
 
 %------------- BEGIN CODE --------------
 
+N = size(data.t,1);
+
 [nSteps, nDataPoints] =  size(x);
 
-% Force input
-    tau_h = [ x(:, 9) x(:, 10) ];
-   
-% tracking errors between model and real robot
-    e = x(:,1:2) - x(:, 5: 6) ;
 
+%% -------------------------------
 % NN weights
-   nnStart = 5;
-   endW   = (nnStart + hidden*output-1);
-   startV = endW + 1;
-   endV   = startV + input*hidden - 1;
-   nnWeightNorms = zeros(nSteps,2);
-   for i=1:nSteps   
-       W      = reshape(x(i,nnStart:endW), output, hidden)';
-       V      = reshape(x(i,startV:endV), input , hidden) ;
+figure;
+plot(data.t, data.normW)
+title('Norm of outer weights W')
+figure;
+plot(data.t, data.normV)
+title('Norm of inner weights V')
+%legend('W','V')
+
+%% -------------------------------
+% Tracking errors between model and real robot
+e = data.xC - data.x_m;
+
+figure; hold on;
+h = plot(data.t,e);
+title('Cartesian Error Plot');
+xlabel('Time (s)');
+ylabel('Error (m)');
+legend('e1','e2');
+grid on;
+
+%% -------------------------------
+% Torque
+figure;
+hold on;
+plot(data.t,data.tau(:,1),'b-')
+plot(data.t,data.tau(:,2),'r-')
+plot(data.t,data.tau_exp(:,1),'g--')
+plot(data.t,data.tau_exp(:,2),'k:')
+title('Input Force and Actual vs Model Cartesian Positions');
+xlabel('Time (s)');
+ylabel('Position (m)');
+legend('NN \tau_{1}','NN \tau_{2}','Actual \tau_{1}','Actual \tau_{2}');
+
+b = 0.5;
+y_max = (1+b)*max(max(data.tau));
+y_min = (1+b)*min(min(data.tau));
+ylim([y_min y_max])
+
+%% -------------------------------
+% Joint positions 
+figure; hold on; grid on;
+plot(data.t,data.q(:,1),'b-')
+plot(data.t,data.q(:,2),'r-')
+plot(data.t,data.qd(:,1),'g--')
+plot(data.t,data.qd(:,2),'k:')
+title('Joint positions');
+xlabel('Time (s)');
+ylabel('Position (m)');
+legend('q_1','q_2', 'qdot_{1}','qdot_{2}');
+
+% figure; hold on;
+% plot(data.t,data.qd(:,1),'b-')
+% plot(data.t,data.qd(:,2),'r-')
+% title('Joint positions');
+% xlabel('Time (s)');
+% ylabel('Position (m)');
+% legend('qdot_{1}','qdot_{2}');
+
+%% -------------------------------
+% Cartesian positions
+figure; hold on; grid on;
+plot(data.t,data.xC(:,1),'b-')
+plot(data.t,data.xC(:,2),'r-')
+plot(data.t,data.x_m(:,1),'g--')
+plot(data.t,data.x_m(:,2),'k:')
+title('Cartesian position');
+xlabel('Time (s)');
+ylabel('Position (m)');
+legend('x','y', 'x_r','y_r');
+
+%% -------------------------------
+% Cartesian velocity
+figure; hold on; grid on;
+plot(data.t,data.xdC(:,1),'b-')
+plot(data.t,data.xdC(:,2),'r-')
+plot(data.t,data.xd_m(:,1),'g--')
+plot(data.t,data.xd_m(:,2),'k:')
+title('Cartesian velocity');
+xlabel('Time (s)');
+ylabel('Position (m)');
+legend('x_d','y_d', 'x_r','y_r');
+
+
+%% -------------------------------
+% ODE data
+figure;
+plot(t',x)
+legend('x','y', 'dx','dy');
+
+%% -------------------------------
+% Animation
+figure;
+hold on;
+x_min = min(data.xC(:,1)); x_max = max(data.xC(:,1));
+y_min = min(data.xC(:,2)); y_max = max(data.xC(:,2));
+
+b = 0.05;
+
+xlim([(1-b)*x_min (1+b)*x_max]);
+ylim([(1-b)*y_min (1+b)*y_max]);
+for i=2:N
+
+    plot(data.xC(i,1),data.xC(i,2),'rx')
+    plot(data.x_m(i,1),data.x_m(i,2),'bo')
     
-       nnWeightNorms(i,1) = norm(W);
-       nnWeightNorms(i,2) = norm(V);
-   end
-   
-   plot(nnWeightNorms)
+    lx = [data.xC(i-1,1), data.xC(i,1)];
+    ly = [data.xC(i-1,2), data.xC(i,2)];
     
-    % Animation
-    figure(9)
-    hold on;
-    xlim([-0.6 0.6]);
-    ylim([-2 2]);
+    lx_m = [data.x_m(i-1,1), data.x_m(i,1)];
+    ly_m = [data.x_m(i-1,2), data.x_m(i,2)];
     
-    x1 = z_sta(:,1);
-    x2 = z_sta(:,2);
-    [M,~] = size(x1);
-    for i=1:M
-        
-        plot(x1(i),x2(i),'rx')  
-        pause(0.01)
-    end
+    plot(lx_m,ly_m,'b:')
+    plot(lx,ly,'r-')
     
-    %return
+    pause(0.05)
+end
+%return
+
+return
+
+%% -------------------------------
+% Cartesian positions
+figure; hold on; grid on;
+plot(data.t,data.xC(:,1),'b-')
+plot(data.t,data.xC(:,2),'r-')
+plot(data.t,data.x_m(:,1),'g--')
+plot(data.t,data.x_m(:,2),'k:')
+title('Cartesian position');
+xlabel('Time (s)');
+ylabel('Position (m)');
+legend('x','y', 'x_d','y_d}');
+
+
+
+%% -------------------------------
     
-    
-    %-------------------------------
-    figure(1)
-    h = plot(t,e);
-    title('Cartesian Error Plot');
-    xlabel('Time (s)');
-    ylabel('Error (m)');
-    legend('e1','e2');
-    
-    figure(2)
-    plot(t,[tau_h x(:,1) x(:,2) x(:,45) x(:,46)])
-    title('Input Force and Actual vs Model Cartesian Positions');
-    xlabel('Time (s)');
-    ylabel('Position (m)');
-    legend('f_{h1}','f_{h2}','q_1','q_2', 'q_{1m}','q_{2m}');
-    
-    figure(3)
-    plot(t,[tau_h x(:,1)+5 x(:,2)+10 x(:,45)+5 x(:,46)+10])
-    title('Input Force and Actual vs Model Cartesian Positions with Offsets');
-    xlabel('Time (s)');
-    ylabel('Position (m)');
-    legend('f_{h1}','f_{h2}','q_1','q_2', 'q_{1m}','q_{2m}');
-    
-    figure(4)
-    subplot(2,1,1)
-    plot(x(:,49),x(:,51), 'k', 'LineWidth', 2 )
-    title('Van der Pol oscillator based Force Phase plot');
-    xlabel('f_{h1}');
-    ylabel('fDot_{h1}');
-    hold on
-    subplot(2,1,2)
-    plot(x(:,50),x(:,52), 'k', 'LineWidth', 2 )
-    hold off
-    title('Van der Pol oscillator based Force Phase plot');
-    xlabel('f_{h2}');
-    ylabel('fDot_{h2}');
-    
+% figure;
+% subplot(2,1,1)
+% plot(x(:,49),x(:,51), 'k', 'LineWidth', 2 )
+% title('Van der Pol oscillator based Force Phase plot');
+% xlabel('f_{h1}');
+% ylabel('fDot_{h1}');
+% hold on
+% subplot(2,1,2)
+% plot(x(:,50),x(:,52), 'k', 'LineWidth', 2 )
+% hold off
+% title('Van der Pol oscillator based Force Phase plot');
+% xlabel('f_{h2}');
+% ylabel('fDot_{h2}');
+
+%% -------------------------------
     figure(5)
     
     subplot(2,2,1)
