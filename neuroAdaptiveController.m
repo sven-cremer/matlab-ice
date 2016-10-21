@@ -10,10 +10,10 @@ output = size(W,2);
 Kv     = 10*eye(output)  ;
 lam    = 20*eye(output)  ;
 F      = 100*eye(hidden) ;
-G      = 20*eye(input)   ;
+G      = 100*eye(input)   ;
 kappa  = 0.1             ;
-Kz     = 1               ;
-Zb     = 100             ;
+Kz     = 0.01              ;
+Zb     = 100              ;
 
 % Tracking errors
 e  = x_m  - x   ;
@@ -32,7 +32,7 @@ y = [ e; ed; x; xd; x_m; xd_m; xdd_m; q; qd ];
 f_hat = W'*sigmoid(V'*y);
 
 % Control force
-fc = Kv*r + f_hat - v;
+fc = Kv*r + 1.0*(f_hat - v);    % TODO flag for NN off
 
 % Expected Control force
 [Mx,Cx,Gx] = robotDynamicsCartesian(q, qd);

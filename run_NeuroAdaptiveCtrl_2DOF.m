@@ -28,13 +28,14 @@ global tau tau_exp
 % Simulation time
 t0 = 0;
 tf = 10;
-Ts = 0.01;   % Controller time step
+Ts = 0.01;   % Controller time step (smaller = better)
 
 %--------------------------
 % Arm parameters
 global rMass rLength gravity
 
-rMass = [1.0;1.0];
+%rMass = [1.0;1.0];
+rMass = [0.4;0.8];
 rLength = [1;1];
 gravity = 9.8;
 
@@ -42,7 +43,7 @@ gravity = 9.8;
 % NN size
 input  = 18;
 output = 2;
-hidden = 20;
+hidden = 25;
 
 global W V
 W = zeros( hidden, output );
@@ -67,7 +68,7 @@ xdd_m_1 = [ 0 0 ]' ;
 
 %--------------------------
 
-xC0 = x_ref*0.75
+xC0 = x_ref;%*0.75
 q0 = robotInverseKinematics(xC0)
 qd0 = [0 0]';
 
@@ -79,7 +80,7 @@ x0= [  q0(1)        ; %  1 q1
        qd0(1)       ; %  3 qd1
        qd0(2)       ]; %  4 qd2
 
-N = (tf-t0)/Ts;     % Data samples
+N = round((tf-t0)/Ts);     % Data samples
 
 data.t       = zeros(N,1);
 data.xC      = zeros(N,output);
@@ -154,9 +155,10 @@ for k=1:N
     %}
     % Simple model trajectory
     %x_m_ = ([0.5  1.5].*cos([tStart, tStart]))' ;
-    x_m_  =   [0.5;1.5].*cos(tStart) ;
-    xd_m_ =  -[0.5;1.5].*sin(tStart) ;
-    xdd_m_ = -[0.5;1.5].*cos(tStart) ;
+    A = 1.5;
+    x_m_  =   [0.5;1.5].*cos(A*tStart) ;
+    xd_m_ =  -[0.5;1.5].*sin(A*tStart).*A ;
+    xdd_m_ = -[0.5;1.5].*cos(A*tStart).*(A^2) ;
     
     %--------------------------
     % INNER LOOP

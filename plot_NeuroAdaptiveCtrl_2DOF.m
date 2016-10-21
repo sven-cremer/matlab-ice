@@ -27,6 +27,8 @@ title('Norm of inner weights V')
 %% Tracking errors between model and real robot
 e = data.xC - data.x_m;
 
+error = norm(e)
+
 figure; hold on;
 h = plot(data.t,e);
 title('Cartesian Error Plot');
@@ -37,12 +39,12 @@ grid on;
 
 %% Torque
 figure;
-hold on;
+hold on; grid on;
 plot(data.t,data.tau(:,1),'b-')
 plot(data.t,data.tau(:,2),'r-')
-%plot(data.t,data.tau_exp(:,1),'g--')
-%plot(data.t,data.tau_exp(:,2),'k:')
-title('Input Force and Actual vs Model Cartesian Positions');
+plot(data.t,data.tau_exp(:,1),'g--')
+plot(data.t,data.tau_exp(:,2),'k:')
+title('Control torque');
 xlabel('Time (s)');
 ylabel('Position (m)');
 legend('NN \tau_{1}','NN \tau_{2}','Actual \tau_{1}','Actual \tau_{2}');

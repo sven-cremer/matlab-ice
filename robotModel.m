@@ -25,6 +25,8 @@ function xdot = robotModel( t, x )
 % ROBOT STATE
 global tau
 
+tau_c = tau;     % TODO flag 
+
 q  = [x(1) x(2)]';
 qd = [x(3) x(4)]';
 
@@ -34,7 +36,7 @@ qd = [x(3) x(4)]';
 [Mq,Cq,Gq] = robotDynamics(q, qd);
 
 % Arm dynamics
-qdd = inv(Mq)*(-Cq*qd-Gq+tau);
+qdd = inv(Mq)*(-Cq*qd-Gq+tau_c);
          
 % Disturbance turque tau_d
 %         taud = 1;
