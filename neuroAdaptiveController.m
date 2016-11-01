@@ -11,8 +11,8 @@ Kv     = 10*eye(output)  ;
 lam    = 20*eye(output)  ;
 F      = 100*eye(hidden) ;
 G      = 100*eye(input)   ;
-kappa  = 0.1             ;
-Kz     = 0.01              ;
+kappa  = 0.001             ;
+Kz     = 0.05            ;
 Zb     = 100              ;
 
 % Tracking errors

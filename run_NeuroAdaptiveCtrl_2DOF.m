@@ -28,7 +28,7 @@ global tau tau_exp
 % Simulation time
 t0 = 0;
 tf = 10;
-Ts = 0.01;   % Controller time step (smaller = better)
+Ts = 0.03;   % Controller time step (smaller = better)
 
 %--------------------------
 % Arm parameters
@@ -43,7 +43,7 @@ gravity = 9.8;
 % NN size
 input  = 18;
 output = 2;
-hidden = 25;
+hidden = 10;
 
 global W V
 W = zeros( hidden, output );
@@ -54,6 +54,7 @@ V = zeros( input , hidden );
 global x_m_ xd_m_ xdd_m_
 
 % Reference Input
+discreteRefTraj = true;
 inputFlag = 1;
 x_ref = [ 0.5  1.5 ]';
 
@@ -81,6 +82,7 @@ x0= [  q0(1)        ; %  1 q1
        qd0(2)       ]; %  4 qd2
 
 N = round((tf-t0)/Ts);     % Data samples
+fprintf('Sampels: %d\n',N)
 
 data.t       = zeros(N,1);
 data.xC      = zeros(N,output);
@@ -130,35 +132,37 @@ for k=1:N
     %--------------------------
     % OUTER LOOP
     % Insert your own model traj generator here RLS/MRAC/RL
-    %{
-    % Change x_ref every 40 samples
-    if mod(k,N/5) == 0
-        if(inputFlag > 4)
-            inputFlag = 1;
-        else
+    if(discreteRefTraj)
+        % Change x_ref every 40 samples
+        if( mod(k,round(N/5)) == 0 )
             inputFlag = inputFlag + 1;
+            if(inputFlag > 4)
+                inputFlag = 1;
+            end
         end
+        switch inputFlag
+            case 1
+                x_ref = [ 0.5  1.5 ]';
+            case 2
+                x_ref = [ 1 1.5 ]';
+            case 3
+                x_ref = [ 1  1 ]';
+            case 4
+                x_ref = [ 0.5  1 ]';
+            otherwise
+                disp('Case for inputFlag not defined!')
+        end
+        x_m_   = x_ref;
+        xd_m_  = [0;0];
+        xdd_m_ = [0;0];
+    else
+        % Simple model trajectory
+        %x_m_ = ([0.5  1.5].*cos([tStart, tStart]))' ;
+        A = 1.5;
+        x_m_  =   [0.5;1.5].*cos(A*tStart) ;
+        xd_m_ =  -[0.5;1.5].*sin(A*tStart).*A ;
+        xdd_m_ = -[0.5;1.5].*cos(A*tStart).*(A^2) ;
     end
-    switch inputFlag
-        case 1
-            x_ref = [ 0.5  1.5 ]';
-        case 2
-            x_ref = [ 1 1.5 ]';
-        case 3
-            x_ref = [ 1  1 ]';
-        case 4
-            x_ref = [ 0.5  1 ]';
-        otherwise
-            disp('Case for inputFlag not defined!')
-    end
-    %x_m_ = x_ref;
-    %}
-    % Simple model trajectory
-    %x_m_ = ([0.5  1.5].*cos([tStart, tStart]))' ;
-    A = 1.5;
-    x_m_  =   [0.5;1.5].*cos(A*tStart) ;
-    xd_m_ =  -[0.5;1.5].*sin(A*tStart).*A ;
-    xdd_m_ = -[0.5;1.5].*cos(A*tStart).*(A^2) ;
     
     %--------------------------
     % INNER LOOP
@@ -222,7 +226,7 @@ for k=1:N
     qd = [x0(3) x0(4)]';
    
     % Display progress
-    if(mod(k,5)==0)
+    if(mod(k,40)==0)
         clc
         percent_complete = k/N*100;
         fprintf('Percent complete: %.0f\n',percent_complete)
