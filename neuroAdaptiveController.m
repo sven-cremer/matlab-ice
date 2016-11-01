@@ -29,7 +29,8 @@ v = - Kz*(norm(Z) + Zb)*r;
 y = [ e; ed; x; xd; x_m; xd_m; xdd_m; q; qd ];
 
 % Nonlinear terms
-f_hat = W'*sigmoid(V'*y);
+S = sigmoid(V'*y);              % Hidden layer output
+f_hat = W'*S;
 
 % Control force
 fc = Kv*r + 1.0*(f_hat - v);    % TODO flag for NN off
@@ -45,14 +46,14 @@ if(dt<=0)
 end
 
 % W update
-W_dot = F*sigmoid(V'*y)*r' - kappa*F*norm(r)*W;
+W_dot = F*S*r' - kappa*F*norm(r)*W;
 
 % V update
-sigmoidPrime = sigmoid(V'*y)+sigmoid(V'*y)'*sigmoid(V'*y);
+sigmoidPrime = diag(S)+diag(S)*diag(S);                 % diag(S)*(I - diag(S)
 V_dot = G*y*(sigmoidPrime'*W*r)' - kappa*G*norm(r)*V;
 
-%V_dot = G*y*((diag(sigmoid(V'*y))*(eye(length(V'*y)) - ...
-%        diag(sigmoid(V'*y))))'*W*r)'  - kappa*G*norm(r)*V;
+% V_dot = G*y*((diag(sigmoid(V'*y))*(eye(length(V'*y)) - diag(sigmoid(V'*y))))'*W*r)' ...
+%         - kappa*G*norm(r)*V;
 
 % Update every timestep
 W = W + W_dot*dt;
