@@ -95,11 +95,20 @@ xlabel('Time (s)');
 ylabel('Position (m)');
 legend('x_d','y_d', 'x_r','y_r');
 
+%% Position plot
+figure; hold on; grid on;
+plot(data.x_m(:,1),data.x_m(:,2),'rx-')
+plot(data.xC(:,1),data.xC(:,2),'b.-')
+title('Cartesian position');
+xlabel('Time (s)');
+ylabel('Position (m)');
+legend('ref', 'actual');
 
 %% ODE data
 figure;
 plot(t',x)
 legend('x','y', 'dx','dy');
+title('ODE simulation');
 
 return
 

@@ -230,6 +230,11 @@ for k=1:N
     
 end
 
+% Compute error
+e = data.xC - data.x_m;
+fprintf('Error norm: %f\n',norm(e))
+
+% Save data
 save('sim1.mat')
 
 %-------------- END CODE ---------------
