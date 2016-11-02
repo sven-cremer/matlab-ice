@@ -27,7 +27,7 @@ global tau tau_exp
 %--------------------------
 % Simulation time
 t0 = 0;
-tf = 30;
+tf = 10;
 Ts = 0.01;   % Controller time step (smaller = better)
 
 %--------------------------
