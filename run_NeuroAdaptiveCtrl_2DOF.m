@@ -27,8 +27,8 @@ global tau tau_exp
 %--------------------------
 % Simulation time
 t0 = 0;
-tf = 10;
-Ts = 0.03;   % Controller time step (smaller = better)
+tf = 30;
+Ts = 0.01;   % Controller time step (smaller = better)
 
 %--------------------------
 % Arm parameters
