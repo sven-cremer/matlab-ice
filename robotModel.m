@@ -21,6 +21,13 @@
 
 function xdot = robotModel( t, x )
 
+if( sum(isnan(x(:))) > 0 )
+    disp('Error: x contains NaN values');
+    %pause;
+    x(3) = 0;
+    x(4) = 0;
+end
+
 % --------------------------------------
 % ROBOT STATE
 global tau
@@ -53,6 +60,6 @@ xdot= [ qd(1)  ;
         qd(2)  ;
         qdd(1) ;
         qdd(2) ];
-
+    
 end
 %-------------- END CODE ---------------

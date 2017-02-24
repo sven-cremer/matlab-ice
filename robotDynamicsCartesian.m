@@ -3,6 +3,11 @@ function [Mx,Cx,Gx] = robotDynamicsCartesian(q, qd)
 % Analytical Jacobian
 J = robotJacobian(q);
 
+% Check J
+if( sum(isnan(J(:))) > 0 )
+    disp('Error: Jacobian contains NaN values');
+end
+
 % Jacobians
 Jinv = pinv(J);             % Inverse
 Jtrans = J';                % Transpose
