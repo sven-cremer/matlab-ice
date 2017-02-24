@@ -1,19 +1,38 @@
+function plot_NeuroAdaptiveCtrl_2DOF(figDir,dataDir)
 
-clear all; close all; clc;
+% Check if figures should be saved
+if ~exist('figDir','var') || isempty(figDir)
+    saveFigs = false;
+else
+    saveFigs = true;
+    fprintf('Saving figures to: %s',figDir);
+    if ~exist(figDir, 'dir')
+        mkdir(figDir);
+    end
+end
 
-load('sim1.mat')
+% Check if data should be loaded from file or previous workspace
+if exist('dataDir','var') && ~isempty(dataDir)
+    fprintf('Loading data from: %s',dataDir);
+    load(dataDir);
+else
+    data = evalin('caller','data');
+    t = evalin('caller','t');
+    x = evalin('caller','x');
+end
 
-%------------- BEGIN CODE --------------
+%% Human VITE model
+figure
+plot(data.t,data.fh)
+title('Human force')
 
-m1 = rMass(1);
-m2 = rMass(2);
-a1 = rLength(1);
-a2 = rLength(2);
+figure
+plot(data.t,data.x_h)
+title('Human position')
 
-N = size(data.t,1);
-
-[nSteps, nDataPoints] =  size(x);
-
+figure
+plot(data.t,data.xd_h)
+title('Human velocity')
 
 %% NN weights
 figure;
@@ -23,6 +42,19 @@ figure;
 plot(data.t, data.normV)
 title('Norm of inner weights V')
 %legend('W','V')
+
+%% Force values
+figure;
+plot(data.t, data.fl)
+title('Fl values')
+
+%% Gamma & Lambda
+figure;
+plot(data.t, data.gamma)
+title('Gamma values')
+figure;
+plot(data.t, data.lambda)
+title('Lambda values')
 
 %% Tracking errors between model and real robot
 e = data.xC - data.x_m;
@@ -95,11 +127,11 @@ xlabel('Time (s)');
 ylabel('Position (m)');
 legend('x_d','y_d', 'x_r','y_r');
 
-%% Position plot
+%% Cartesian 2D plot
 figure; hold on; grid on;
 plot(data.x_m(:,1),data.x_m(:,2),'rx-')
 plot(data.xC(:,1),data.xC(:,2),'b.-')
-title('Cartesian position');
+title('Cartesian 2D plot');
 xlabel('Time (s)');
 ylabel('Position (m)');
 legend('ref', 'actual');
@@ -110,249 +142,16 @@ plot(t',x)
 legend('x','y', 'dx','dy');
 title('ODE simulation');
 
-return
-
-%% Animation
-figure;
-hold on;
-grid on;
-x_min = min(data.xC(:,1)); x_max = max(data.xC(:,1));
-y_min = min(data.xC(:,2)); y_max = max(data.xC(:,2));
-
-b = 0.75;
-%xlim([(1-b)*x_min (1+b)*x_max]);
-%ylim([(1-b)*y_min (1+b)*y_max]);
-
-xlabel('x');ylabel('y');zlabel('z');
-z = 0;
-
-xlim([-1.2 1.2])
-ylim([-2 2])
-view([-60 80])
-
-for i=2:N
+%% Save figures
+if(saveFigs)
+    h =  findobj('type','figure');
+    n = length(h);
     
-    z = z + i*0.1;
-    zp = z - 100;
-    if(zp<0)
-        zp=0;
+    for i=1:n
+        %saveas(figure(j),[figDir,'/eps/',fnames{j},int2str(i),'.eps'],'epsc')
+        saveas(figure(i),[figDir,'/',int2str(i),'.png'],'png')
     end
-    zlim([zp z]);   % TODO use buffer instead + plot state function
-    
-    z2 = z*ones(1,2);
-    
-    % Robot
-    q = data.q(i,:);
-    lx01 = [0, a1*cos(q(1))];
-    ly01 = [0, a1*sin(q(1))];
-    lx12 = [a1*cos(q(1)),data.xC(i,1)];
-    ly12 = [a1*sin(q(1)),data.xC(i,2)];
-    plot3(lx01,ly01,z2,'k:')
-    plot3(lx12,ly12,z2,'k:')
-    plot3([lx01,lx12(1)], [ly01,ly12(1)], [z2, z2(1)],'go','MarkerSize',10)
-    
-    % End efftor
-    plot3(data.xC(i,1),data.xC(i,2),z2,'rx')
-    plot3(data.x_m(i,1),data.x_m(i,2),z2,'bo')
-    
-    % Path taken
-    lx = [data.xC(i-1,1), data.xC(i,1)];
-    ly = [data.xC(i-1,2), data.xC(i,2)];
-    
-    lx_m = [data.x_m(i-1,1), data.x_m(i,1)];
-    ly_m = [data.x_m(i-1,2), data.x_m(i,2)];
-    
-    plot3(lx_m,ly_m,z2,'b:')
-    plot3(lx,ly,z2,'r:')
-    
-    pause(0.1)
 end
-%return
 
-return
-
-%% -------------------------------
-
-% Cartesian positions
-figure; hold on; grid on;
-plot(data.t,data.xC(:,1),'b-')
-plot(data.t,data.xC(:,2),'r-')
-plot(data.t,data.x_m(:,1),'g--')
-plot(data.t,data.x_m(:,2),'k:')
-title('Cartesian position');
-xlabel('Time (s)');
-ylabel('Position (m)');
-legend('x','y', 'x_d','y_d}');
-
-
-
-%% -------------------------------
-    
-% figure;
-% subplot(2,1,1)
-% plot(x(:,49),x(:,51), 'k', 'LineWidth', 2 )
-% title('Van der Pol oscillator based Force Phase plot');
-% xlabel('f_{h1}');
-% ylabel('fDot_{h1}');
-% hold on
-% subplot(2,1,2)
-% plot(x(:,50),x(:,52), 'k', 'LineWidth', 2 )
-% hold off
-% title('Van der Pol oscillator based Force Phase plot');
-% xlabel('f_{h2}');
-% ylabel('fDot_{h2}');
-
-%% -------------------------------
-    figure(5)
-    
-    subplot(2,2,1)
-    plot(t, tau_h(:, 1), 'k', 'LineWidth', 2 )
-    title('Input Force in X axis');
-    xlabel('Time (s)');
-    ylabel('Force (N)');
-    legend('f_{h1}');
-    
-    subplot(2,2,3)
-    plot(t, x(:,1) , 'k', 'LineWidth', 2 )
-    hold on
-    plot(t, x(:,45), '--r', 'LineWidth', 2 )
-    title('Actual vs Model Cartesian Positions for X axis');
-    xlabel('Time (s)');
-    ylabel('Position (m)');
-    legend('q_1', 'q_{1m}');
-    
-    subplot(2,2,2)
-    plot(t, tau_h(:, 2), 'k', 'LineWidth', 2 )
-    title('Input Force in Y axis');
-    xlabel('Time (s)');
-    ylabel('Force (N)');
-    legend('f_{h2}');
-    
-    subplot(2,2,4)
-    plot(t, x(:,2) , 'k', 'LineWidth', 2 )
-    hold on
-    plot(t, x(:,46), '--r', 'LineWidth', 2 )
-    title('Actual vs Model Cartesian Positions for Y axis');
-    xlabel('Time (s)');
-    ylabel('Position (m)');
-    legend('q_2','q_{2m}');
-    hold off
-    
-    
-    %-------------------------------
-     
-    
-    % FIGURE 6
-    figure(6)
-    lwidth = 1.5;
-    subplot(2,2,1)
-    plot(z_t, z_sta(:,1) , '.k', 'LineWidth', lwidth )
-    hold on
-    plot(z_t, z_mdl(:, 1), '--r', 'LineWidth', lwidth )
-%     hold on
-%     plot(z_t, z_sta(:, 22), 'b', 'LineWidth', lwidth )
-    xlim([0 z_t(end)])
-    title('x Position');
-    xlabel('Time (s)');
-    ylabel('x (m)');
-    legend('q_1', 'q_{1m}', 'q_{1d}');
-    
-    subplot(2,2,2)
-    plot(z_t, z_sta(:,2) , '.k', 'LineWidth', lwidth )
-    hold on
-    plot(z_t, z_mdl(:, 2), '--r', 'LineWidth', lwidth )
-%     hold on
-%     plot(z_t, z_sta(:, 23), 'b', 'LineWidth', lwidth )
-    xlim([0 z_t(end)])
-    title('y Position');
-    xlabel('Time (s)');
-    ylabel('y (m)');
-    legend('q_2','q_{2m}', 'q_{2d}');
-
-    subplot(2,2,3)
-    plot(z_t, z_sta(:,3) , '.k', 'LineWidth', lwidth )
-    hold on
-    plot(z_t, z_mdl(:, 3), '--r', 'LineWidth', lwidth )
-%     hold on
-%     plot(z_t, z_sta(:, 24), 'b', 'LineWidth', lwidth )
-    xlim([0 z_t(end)])
-    title('x Velocity');
-    xlabel('Time (s)');
-    ylabel('x Velocity (m/s)');
-    legend('qd_1', 'qd_{1m}', 'qd_{1d}');
-    
-    subplot(2,2,4)
-    plot(z_t, z_sta(:,4) , '.k', 'LineWidth', lwidth )
-    hold on
-    plot(z_t, z_mdl(:, 4), '--r', 'LineWidth', lwidth )
-%     hold on
-%     plot(z_t, z_sta(:, 25), 'b', 'LineWidth', lwidth )
-    xlim([0 z_t(end)])
-    title('y Velocity');
-    xlabel('Time (s)');
-    ylabel('y Velocity (m/s)');
-    legend('qd_2','qd_{2m}', 'qd_{2d}');
-    hold off
-    
-    
-    % FIGURE 7
-    figure(7)
-    lwidth = 1.5;
-    subplot(2,2,1)
-    plot(z_t, z_sta(:, 22), '.b', 'LineWidth', lwidth )
-    hold on
-    plot(z_t, z_mdl(:, 1), '--r', 'LineWidth', lwidth )
-    xlim([0 z_t(end)])
-    title('Joint Angles for Joint 1');
-    xlabel('Time (s)');
-    ylabel('Angle (rad)');
-    legend('q_{1d}', 'q_{1m}');
-    
-    subplot(2,2,2)
-    plot(z_t, z_sta(:, 23), '.b', 'LineWidth', lwidth )
-    hold on
-    plot(z_t, z_mdl(:, 2), '--r', 'LineWidth', lwidth )
-    xlim([0 z_t(end)])
-    title('Joint Angles for Joint 2');
-    xlabel('Time (s)');
-    ylabel('Angle (rad)');
-    legend('q_{2d}', 'q_{2m}');
-
-    subplot(2,2,3)
-    plot(z_t, z_sta(:, 24), '.b', 'LineWidth', lwidth )
-    hold on
-    plot(z_t, z_mdl(:, 3), '--r', 'LineWidth', lwidth )
-    xlim([0 z_t(end)])
-    title('Joint Velocity for Joint 1');
-    xlabel('Time (s)');
-    ylabel('Angular Velocity (rad/s)');
-    legend('qd_{2d}', 'qd_{2m}');
-    
-    subplot(2,2,4)
-    plot(z_t, z_sta(:, 25), '.b', 'LineWidth', lwidth )
-    hold on
-    plot(z_t, z_mdl(:, 4), '--r', 'LineWidth', lwidth )
-    xlim([0 z_t(end)])
-    title('Joint Velocity for Joint 2');
-    xlabel('Time (s)');
-    ylabel('Angular Velocity (rad/s)');
-    legend('qd_{2d}', 'qd_{2m}');
-    hold off
-    
-    % FIGURE 8
-    figure(8)
-    lwidth = 1.5;
-
-    plot(z_sta(:,1)  , z_sta(:,2)  , '.k' , 'LineWidth', lwidth )
-    hold on 
-    plot(z_mdl(:, 1) , z_mdl(:, 2) , '--r', 'LineWidth', lwidth )
-%     hold on
-%     plot(z_sta(:, 22), z_sta(:, 23), 'b'  , 'LineWidth', lwidth )
-%     xlim([0 z_t(end)])
-    title('Cartesian Pose');
-    xlabel('x (m)');
-    ylabel('y (m)');
-    legend('q_1', 'q_{1m}', 'q_{1d}');
-         
-    
-%-------------- END CODE ---------------
+%%
+end

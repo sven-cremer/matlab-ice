@@ -22,13 +22,31 @@
 %------------- BEGIN CODE --------------
 clear all; close all; clc;
 
+expName = '01';
+
+dirData = ['data_exp',expName];
+dirFigs = [dirData,'/fig'];
+
+if ~exist(dirData, 'dir')
+    mkdir(dirData);
+end
+if ~exist(dirFigs, 'dir')
+    mkdir(dirFigs);
+end
+
+fName = 'sim.mat';
+
+saveData = true;
+plotData = true;
+saveFig  = true;
+
 global tau tau_exp
 
 %--------------------------
 % Simulation time
 t0 = 0;
-tf = 10;
-Ts = 0.01;   % Controller time step (smaller = better)
+tf = 10;    % 80
+Ts = 0.005;   % Controller time step (smaller = better)
 
 %--------------------------
 % Arm parameters
@@ -43,7 +61,7 @@ gravity = 9.8;
 % NN size
 input  = 18;
 output = 2;
-hidden = 10;
+hidden = 72;
 
 global W V
 W = zeros( hidden, output );
@@ -54,7 +72,7 @@ V = zeros( input , hidden );
 global x_m_ xd_m_ xdd_m_
 
 % Reference Input
-discreteRefTraj = true;
+discreteRefTraj = false;
 inputFlag = 1;
 x_ref = [ 0.5  1.5 ]';
 
@@ -66,6 +84,13 @@ xd_m_1  = [ 0 0 ]' ;
 
 xdd_m_  = [ 0 0 ]' ;
 xdd_m_1 = [ 0 0 ]' ;
+
+%--------------------------
+% Prescribed error dynamics
+global gamma lambda fl
+gamma = 9.5 .* eye(2)  ;
+lambda = 0.5 .* eye(2)  ;
+fl = zeros(2,1);
 
 %--------------------------
 
@@ -96,6 +121,13 @@ data.xd_m    = zeros(N,output);
 data.xdd_m   = zeros(N,output);
 data.tau     = zeros(N,output);
 data.tau_exp = zeros(N,output);     % Expected value
+data.lambda  = zeros(N,output*2);
+data.gamma   = zeros(N,output*2);
+data.fl      = zeros(N,output);
+data.fh      = zeros(N,1);
+
+data.x_h     = zeros(N,1);
+data.xd_h    = zeros(N,1);
 
 t = []; % ODE simulation time vector
 x = []; % ODE simulation states
@@ -108,6 +140,10 @@ xC = xC0;
 xdC = xdC0;
 tau = [0;0];
 tau_exp = [0;0];
+
+fh   = 0;
+x_h  = 0;   % 1D model
+xd_h = 0;
 
 tStart = t0;
 tStop = tStart + Ts;
@@ -128,13 +164,30 @@ for k=1:N
     data.xdd_m   (k,:) = xdd_m_';
     data.tau     (k,:) = tau';
     data.tau_exp (k,:) = tau_exp';
+    data.lambda  (k,:) = lambda(:);
+    data.gamma   (k,:) = gamma(:);
+    data.fl      (k,:) = fl(:);
+    data.fh      (k,:) = fh(1);
    
+    data.x_h     (k,:) = x_h(end);  % 1-D data
+    data.xd_h    (k,:) = xd_h(end);
+    
+    %--------------------------
+    % VITE model (fake human)   <- Assume 1-D motion
+    [x_h, xd_h, fh] = viteEstimator( tStart, tStop, xC(1), 10, 400, 100);
+    
+    fh     = [fh(end);0];
+    x_m_   = [0.15;0];
+    xd_m_  = [0;0];
+    xdd_m_ = [0;0];
+    
     %--------------------------
     % OUTER LOOP
     % Insert your own model traj generator here RLS/MRAC/RL
+    %{
     if(discreteRefTraj)
         % Change x_ref every 40 samples
-        if( mod(k,round(N/5)) == 0 )
+        if( mod(k,round(N/5)) == 0 )    % 40
             inputFlag = inputFlag + 1;
             if(inputFlag > 4)
                 inputFlag = 1;
@@ -163,6 +216,12 @@ for k=1:N
         xd_m_ =  -[0.5;1.5].*sin(A*tStart).*A ;
         xdd_m_ = -[0.5;1.5].*cos(A*tStart).*(A^2) ;
     end
+    %}
+    
+    %--------------------------
+    % Human Intent Estimation
+    
+    %[xd,xd_dot] = humanIntentEstimator(x, xdot, fh, dt, xd_prev);
     
     %--------------------------
     % INNER LOOP
@@ -175,7 +234,8 @@ for k=1:N
     xdC= J*qd;
     
     % NN controller
-    [fc,fc_exp] = neuroAdaptiveController(q, qd, xC, xdC, x_m_, xd_m_, xdd_m_,Ts);
+    f_h = [0;0];
+    [fc,fc_exp] = neuroAdaptiveController(q, qd, xC, xdC, x_m_, xd_m_, xdd_m_, f_h, Ts);
 
     % Computed torques
     Jtrans = J';
@@ -199,7 +259,18 @@ for k=1:N
     %--------------------------
     % SIMMULATION STEP
     
+    
     [tDel,xDel]= ode45(@robotModel, [tStart tStop], x0);
+  
+    % Check for warnings
+    [m,id]=lastwarn();
+    if strcmp(id,'MATLAB:nearlySingularMatrix')
+        disp(strcat('the following warning occurred:'))
+        m
+        id
+        pause;
+    end
+    lastwarn('');
     
     tStart = tDel(end);
     tStop = tStart + Ts;
@@ -239,6 +310,13 @@ e = data.xC - data.x_m;
 fprintf('Error norm: %f\n',norm(e))
 
 % Save data
-save('sim1.mat')
+if(saveData)
+    save([dirData,'/',fName])
+end
+
+% Plot results
+if(plotData)
+    plot_NeuroAdaptiveCtrl_2DOF(dirFigs);
+end
 
 %-------------- END CODE ---------------
