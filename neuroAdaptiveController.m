@@ -1,4 +1,4 @@
-function [fc,fc_exp] = neuroAdaptiveController(q, qd, x, xd, x_m, xd_m, xdd_m, dt)
+function [fc,fc_exp] = neuroAdaptiveController(q, qd, x, xd, x_m, xd_m, xdd_m, fh, dt)
 
 global W V                  % NN weights
 global gamma lambda fl      % Prescribed Error dynamics
@@ -17,7 +17,7 @@ Kz     = 0.05            ;
 Zb     = 100              ;
 
 % Prescribed Error dynamics
-fh = [0.0;0.0];                    % TODO measure
+%fh = [0.0;0.0];                    % TODO measure
 Kd = 20.0*eye(output);
 Dd = 10.0*eye(output);
 gamma = Dd - lambda;
