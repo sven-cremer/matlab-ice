@@ -49,6 +49,7 @@ Thumbs.db
 ###############
 bin/
 build/
+data*
 
 # Matlab #
 ###############

@@ -17,7 +17,7 @@ classdef classNeuroAdaptive
         Zb     = 100;
         
         % Output
-        fhat;   % NN output
+        f_hat;  % NN output
         fc;     % Control force
         fc_exp; % Expected control force
         
@@ -50,17 +50,17 @@ classdef classNeuroAdaptive
             o.F      = 100 *eye(o.nHid) ;
             o.G      = 100 *eye(o.nInp) ;
             
-            o.fhat   = 0;
+            o.f_hat  = 0;
             o.fc     = 0;
             o.fc_exp = 0;
             
         end
         
     end
-    
+%{    
     methods    % set/get methods
         
-        function o = set.numHidden(o, i)
+        function o = set.nHid(o, i)
             validateattributes(i, {'integer'}, ...
                 {'positive'});
             o.nHid = i;
@@ -68,11 +68,13 @@ classdef classNeuroAdaptive
         end
         
     end
-    
+%}    
     methods     % computational methods
         
-        function o = update(o, q, qd, x, xd, x_m, xd_m, xdd_m, dt)
+        function o = update(o, q, qd, x, xd, x_m, xd_m, xdd_m, fh, dt)
             % NN update step
+            
+            % Prescribed Error dynamics
             
             % Tracking errors
             e  = x_m  - x   ;

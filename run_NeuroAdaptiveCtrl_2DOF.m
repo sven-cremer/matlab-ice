@@ -22,7 +22,7 @@
 %------------- BEGIN CODE --------------
 clear all; close all; clc;
 
-expName = '01';
+expName = '02';
 
 dirData = ['data_exp',expName];
 dirFigs = [dirData,'/fig'];
@@ -38,7 +38,7 @@ fName = 'sim.mat';
 
 saveData = true;
 plotData = true;
-saveFig  = true;
+saveFigs = false;
 
 global tau tau_exp
 
@@ -63,16 +63,18 @@ input  = 18;
 output = 2;
 hidden = 72;
 
-global W V
-W = zeros( hidden, output );
-V = zeros( input , hidden );
+%global W V
+%W = zeros( hidden, output );
+%V = zeros( input , hidden );
+
+na = classNeuroAdaptive(input,hidden,output);
 
 %--------------------------
 % Discrete Cartesian model states
 global x_m_ xd_m_ xdd_m_
 
 % Reference Input
-discreteRefTraj = false;
+discreteRefTraj = true;
 inputFlag = 1;
 x_ref = [ 0.5  1.5 ]';
 
@@ -157,8 +159,8 @@ for k=1:N
     data.xdC     (k,:) = xdC';
     data.q       (k,:) = q';
     data.qd      (k,:) = qd';
-    data.normW   (k,:) = norm(W);
-    data.normV   (k,:) = norm(V);
+    data.normW   (k,:) = norm(na.W);
+    data.normV   (k,:) = norm(na.V);
     data.x_m     (k,:) = x_m_';
     data.xd_m    (k,:) = xd_m_';
     data.xdd_m   (k,:) = xdd_m_';
@@ -174,17 +176,18 @@ for k=1:N
     
     %--------------------------
     % VITE model (fake human)   <- Assume 1-D motion
+    %{
     [x_h, xd_h, fh] = viteEstimator( tStart, tStop, xC(1), 10, 400, 100);
     
     fh     = [fh(end);0];
     x_m_   = [0.15;0];
     xd_m_  = [0;0];
     xdd_m_ = [0;0];
-    
+    %}
     %--------------------------
     % OUTER LOOP
     % Insert your own model traj generator here RLS/MRAC/RL
-    %{
+    
     if(discreteRefTraj)
         % Change x_ref every 40 samples
         if( mod(k,round(N/5)) == 0 )    % 40
@@ -216,7 +219,7 @@ for k=1:N
         xd_m_ =  -[0.5;1.5].*sin(A*tStart).*A ;
         xdd_m_ = -[0.5;1.5].*cos(A*tStart).*(A^2) ;
     end
-    %}
+    
     
     %--------------------------
     % Human Intent Estimation
@@ -235,8 +238,11 @@ for k=1:N
     
     % NN controller
     f_h = [0;0];
-    [fc,fc_exp] = neuroAdaptiveController(q, qd, xC, xdC, x_m_, xd_m_, xdd_m_, f_h, Ts);
-
+    %[fc,fc_exp] = neuroAdaptiveController(q, qd, xC, xdC, x_m_, xd_m_, xdd_m_, f_h, Ts);
+    na = update(na, q, qd, xC, xdC, x_m_, xd_m_, xdd_m_, f_h, Ts);
+    fc = na.fc;
+    fc_exp = na.fc_exp;
+    
     % Computed torques
     Jtrans = J';
     tau     =  Jtrans*fc;
@@ -316,7 +322,11 @@ end
 
 % Plot results
 if(plotData)
-    plot_NeuroAdaptiveCtrl_2DOF(dirFigs);
+    if(saveFigs)
+        plot_NeuroAdaptiveCtrl_2DOF(dirFigs);
+    else
+        plot_NeuroAdaptiveCtrl_2DOF();
+    end
 end
 
 %-------------- END CODE ---------------
