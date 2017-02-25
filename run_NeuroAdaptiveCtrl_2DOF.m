@@ -37,7 +37,7 @@ end
 fName = 'sim.mat';
 
 saveData = true;
-plotData = true;
+plotData = false;
 saveFigs = false;
 
 global tau tau_exp
@@ -49,7 +49,7 @@ tf = 10;    % 80
 Ts = 0.005;   % Controller time step (smaller = better)
 
 %--------------------------
-% Arm parameters
+% Arm parameters <- TODO move to robot class
 global rMass rLength gravity
 
 %rMass = [1.0;1.0];
@@ -58,16 +58,17 @@ rLength = [1;1];
 gravity = 9.8;
 
 %--------------------------
-% NN size
+% Neuroadpative controller
 input  = 18;
 output = 2;
 hidden = 72;
 
-%global W V
-%W = zeros( hidden, output );
-%V = zeros( input , hidden );
-
 na = classNeuroAdaptive(input,hidden,output);
+
+% Set NN parameters, for example:
+
+% na.lambda = 0.5 .* eye(2);
+% na.gamma  = ...
 
 %--------------------------
 % Discrete Cartesian model states
@@ -86,13 +87,6 @@ xd_m_1  = [ 0 0 ]' ;
 
 xdd_m_  = [ 0 0 ]' ;
 xdd_m_1 = [ 0 0 ]' ;
-
-%--------------------------
-% Prescribed error dynamics
-% global gamma lambda fl
-% gamma = 9.5 .* eye(2)  ;
-% lambda = 0.5 .* eye(2)  ;
-% fl = zeros(2,1);
 
 %--------------------------
 
@@ -225,9 +219,10 @@ for k=1:N
     % Human Intent Estimation
     
     %[xd,xd_dot] = humanIntentEstimator(x, xdot, fh, dt, xd_prev);
+    f_h = [0;0];
     
     %--------------------------
-    % INNER LOOP
+    % INNER-LOOP CONTROLLER 
     
     % Forward kinematics
     xC = robotForwardKinematics(q);
@@ -236,11 +231,9 @@ for k=1:N
     J = robotJacobian(q);
     xdC= J*qd;
     
-    % NN controller
-    f_h = [0;0];
-    %[fc,fc_exp] = neuroAdaptiveController(q, qd, xC, xdC, x_m_, xd_m_, xdd_m_, f_h, Ts);
+    % Controller update
     na = update(na, q, qd, xC, xdC, x_m_, xd_m_, xdd_m_, f_h, Ts);
-    fc = na.fc;
+    fc     = na.fc;
     fc_exp = na.fc_exp;
     
     % Computed torques
@@ -263,8 +256,7 @@ for k=1:N
     end
     
     %--------------------------
-    % SIMMULATION STEP
-    
+    % PLANT - ROBOT SIMMULATION STEP
     
     [tDel,xDel]= ode45(@robotModel, [tStart tStop], x0);
   
@@ -307,6 +299,15 @@ for k=1:N
         clc
         percent_complete = k/N*100;
         fprintf('Percent complete: %.0f\n',percent_complete)
+    end
+    
+    % Visualize NN weights
+    if(false)
+        subplot(1,2,1); imagesc(na.W,[-1 1]); colormap(cool); %colorbar;
+        subplot(1,2,2); imagesc(na.V,[-1 1]); colormap(cool); %colorbar;
+        %imagesc([na.W, ones(na.nHid,1),na.V'],[-1 1])
+        title(sprintf('t=%.3f, e=%f',tStop,norm(xC-x_m_) ));
+        pause(0.001)
     end
     
 end
