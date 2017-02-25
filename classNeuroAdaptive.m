@@ -103,8 +103,8 @@ classdef classNeuroAdaptive
 %}    
     methods     % computational methods
         
-        function o = update(o, q, qd, x, xd, x_m, xd_m, xdd_m, fh, dt)
-            % Neuroadaptive controller update step
+        function o = update(o, q, qd, x, xd, x_m, xd_m, xdd_m, fh, dt, robot)
+            % Neuroadaptive controller update step (robot is optional)
             
             % Tracking errors
             e  = x_m  - x   ;
@@ -145,10 +145,16 @@ classdef classNeuroAdaptive
             o.fc = o.Kv*r + (o.f_hat - v).*(o.NN_on);
             
             % Expected Control force
-            [Mx,Cx,Gx] = robotDynamicsCartesian(q, qd);
-            f_act = Mx*( xdd_m + o.lam*ed ) + Cx*( xd_m + o.lam*e ) + Gx;
-            o.fc_exp = o.Kv*r + f_act - v;
-            
+            if exist('robot','var') && ~isempty(robot)
+                Mx = robot.Mx;
+                Cx = robot.Cx;
+                Gx = robot.Gx;
+                f_act = Mx*( xdd_m + o.lam*ed ) + Cx*( xd_m + o.lam*e ) + Gx;
+                o.fc_exp = o.Kv*r + f_act - v;
+            else
+                o.fc_exp = zeros(o.nOut,1);
+            end
+
             % Parameter update
             if(dt<=0)
                 return
@@ -216,7 +222,3 @@ classdef classNeuroAdaptive
     
     
 end
-
-
-
-

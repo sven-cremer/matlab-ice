@@ -1,4 +1,4 @@
-function [Mq,Cq,Gq] = robotDynamics(q, qdot)
+function [Mq,Cq,Gq] = robotDynamics(q, qd)
 global rMass rLength gravity
 
 % Arm parameters
@@ -11,8 +11,8 @@ g  = gravity;
 % Input variables
 q1 = q(1);
 q2 = q(2);
-dq1 = qdot(1);
-dq2 = qdot(2);
+dq1 = qd(1);
+dq2 = qd(2);
     
 % Inertia term M(q)
 M11 = (m1 + m2)*a1^2 + m2*a2^2 + 2*m2*a1*a2*cos(q2) ;

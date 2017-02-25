@@ -37,9 +37,9 @@ end
 fName = 'sim.mat';
 
 saveData = true;
-plotData = false;
+plotData = true;
 saveFigs = false;
-plotNN   = true;
+plotNN   = false;
 
 global tau tau_exp
 
@@ -50,19 +50,23 @@ tf = 10;    % 80
 Ts = 0.005;   % Controller time step (smaller = better)
 
 %--------------------------
-% Arm parameters <- TODO move to robot class
-global rMass rLength gravity
+% Robot (2DOF)
 
-%rMass = [1.0;1.0];
+robot = classRobot(2);
+
+robot.mass      = [0.4;0.8];
+robot.length    = [1;1];
+
+global rMass rLength gravity
 rMass = [0.4;0.8];
-rLength = [1;1];
-gravity = 9.8;
+rLength = [1;1]; 
+gravity = 9.81;
 
 %--------------------------
 % Neuroadpative controller
 input  = 18;
 output = 2;
-hidden = 72;
+hidden = 36;
 
 na = classNeuroAdaptive(input,hidden,output);
 
@@ -91,12 +95,13 @@ xdd_m_1 = [ 0 0 ]' ;
 
 %--------------------------
 
-xC0 = x_ref;%*0.75
-q0 = robotInverseKinematics(xC0)
-qd0 = [0 0]';
+xC0  = x_ref;%*0.75
 
-xC0  = robotForwardKinematics(q0)
-xdC0 = [0;0];
+q0   = IK(robot,xC0)
+qd0  = [0; 0];
+
+xC0  = FK(robot,q0)
+xdC0 = [0; 0];
 
 x0= [  q0(1)        ; %  1 q1
        q0(2)        ; %  2 q2
@@ -225,22 +230,19 @@ for k=1:N
     %--------------------------
     % INNER-LOOP CONTROLLER 
     
-    % Forward kinematics
-    xC = robotForwardKinematics(q);
-    
-    % Analytical Jacobian
-    J = robotJacobian(q);
-    xdC= J*qd;
+    % Robot update
+    robot = updateState(robot, q, qd);
+    xC    = robot.x;
+    xdC   = robot.xd;
     
     % Controller update
-    na = update(na, q, qd, xC, xdC, x_m_, xd_m_, xdd_m_, f_h, Ts);
+    na = update(na, q, qd, xC, xdC, x_m_, xd_m_, xdd_m_, f_h, Ts,robot);
     fc     = na.fc;
     fc_exp = na.fc_exp;
     
     % Computed torques
-    Jtrans = J';
-    tau     =  Jtrans*fc;
-    tau_exp =  Jtrans*fc_exp;
+    tau     =  robot.Jt*fc;
+    tau_exp =  robot.Jt*fc_exp;
     
     % Torque saturation
     tau_max = 100;
