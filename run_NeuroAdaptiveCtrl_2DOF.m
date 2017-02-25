@@ -39,6 +39,7 @@ fName = 'sim.mat';
 saveData = true;
 plotData = false;
 saveFigs = false;
+plotNN   = true;
 
 global tau tau_exp
 
@@ -302,11 +303,9 @@ for k=1:N
     end
     
     % Visualize NN weights
-    if(false)
-        subplot(1,2,1); imagesc(na.W,[-1 1]); colormap(cool); %colorbar;
-        subplot(1,2,2); imagesc(na.V,[-1 1]); colormap(cool); %colorbar;
-        %imagesc([na.W, ones(na.nHid,1),na.V'],[-1 1])
-        title(sprintf('t=%.3f, e=%f',tStop,norm(xC-x_m_) ));
+    if(plotNN)
+        plotWeights(na)
+        suptitle(sprintf('t=%.3f, e=%f',tStop,norm(xC-x_m_) ));
         pause(0.001)
     end
     

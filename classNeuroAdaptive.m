@@ -169,6 +169,48 @@ classdef classNeuroAdaptive
             o.V = o.V + V_dot*dt;
                        
         end
+        
+        function plotWeights(o)
+            % Visualizes NN weights
+            
+            xticks = o.nOut + o.nInp;
+            %p = get(gcf,'position');
+            %set(gcf,'position',p)
+
+            clim = [-1 1];
+            
+            h1 = subplot(1,2,1);
+            p = get(h1,'position');
+            xlength = p(3) * 2 * o.nOut/xticks; % Compute new scaled length
+            x_diff = p(3) - xlength;            % Compute difference
+            p(3) = xlength;                     % Set new length
+            set(h1,'position',p)
+            
+            imagesc(o.W,clim);
+            colormap(cool); %colorbar;
+            set(gca,'XTick',1:o.nOut,...
+                    'YTick',1:o.nHid,...
+                    'TickLength',[0 0]);
+            xlabel('Output'); ylabel('Hidden');
+            title('W - Outer weights');
+            
+            h2 = subplot(1,2,2); 
+            p = get(h2,'position');      
+            p(3) = p(3) * 2 * o.nInp/xticks;    % Compute new scaled length   
+            p(1) = p(1) - x_diff;               % Shift subfigure
+            set(h2,'position',p)
+            
+            imagesc(o.V',clim);
+            colormap(cool); %colorbar;
+            set(gca,'XTick',1:o.nInp,...
+                    'YTick',1:o.nHid,...
+                    'TickLength',[0 0]);
+            ylabel('Hidden');xlabel('Input');
+            title('V'' - Inner weights');
+            
+            %imagesc([na.W, ones(na.nHid,1),na.V'],[-1 1])
+            
+        end
              
     end
     
