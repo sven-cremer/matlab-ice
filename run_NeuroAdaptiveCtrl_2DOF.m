@@ -245,18 +245,7 @@ for k=1:N
     tau_exp =  robot.Jt*fc_exp;
     
     % Torque saturation
-    tau_max = 100;
-    % [v_max, i_max] = max(abs(tau));
-    % if( v_max > tau_max)
-    %     tau = tau.*(tau_max/tau(i_max));
-    % end
-    
-    if( abs(tau(1)) > tau_max)
-        tau(1) = tau(1).*(tau_max/abs(tau(1)));
-    end
-    if( abs(tau(2)) > tau_max)
-        tau(2) = tau(2).*(tau_max/abs(tau(2)));
-    end
+    tau = torqueSaturation(robot, tau);
     
     %--------------------------
     % PLANT - ROBOT SIMMULATION STEP

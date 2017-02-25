@@ -11,6 +11,8 @@ classdef classRobot
         
         fc;         % Cartesian force
         tau;        % Applied torque
+        tau_max;    % Maximum torque
+        tau_min;    % Minimum torque
         
         J;          % Jacobian
         Jdot;       % Jacobian derivative
@@ -43,7 +45,10 @@ classdef classRobot
             o.nJoints = nJoints;
             
             o.length = ones(nJoints,1);
-            o.mass   = ones(nJoints,1);           
+            o.mass   = ones(nJoints,1);
+            
+            o.tau_max = 100;
+            o.tau_min = -100;
                        
            if(o.nJoints ~= 2)
                disp('Warn: Most functions assume 2 DOF!');
@@ -202,6 +207,30 @@ classdef classRobot
             Cx = JtransInv*( Cq - Mq*Jinv*Jdot )*Jinv;
             Gx = JtransInv*Gq;     
             
+        end
+        
+        function tau_sat = torqueSaturation(o, tau)
+            % Applies torque saturation
+            
+            tau_sat = tau;
+            
+            % Option 1: cutoff values
+            %tau_sat( tau_sat > o.tau_max ) = o.tau_max;
+            %tau_sat( tau_sat < o.tau_min ) = o.tau_min;
+                     
+            % Option 2: Scale all values
+            idxMax = tau_sat > o.tau_max;
+            idxMin = tau_sat < o.tau_min;
+            if( sum(idxMax(:)) + sum(idxMin(:)) > 0)
+                r1 = o.tau_max / max( tau(:) );
+                r2 = o.tau_min / min( tau(:) );
+                if(r1 < r2)
+                    tau_sat = tau .* r1;
+                else
+                    tau_sat = tau .* r2;
+                end
+            end
+  
         end
         
         
