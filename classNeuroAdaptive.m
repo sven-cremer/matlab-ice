@@ -4,29 +4,42 @@ classdef classNeuroAdaptive
     properties
         % Public properties
         
-        V;  % Inner weights, [nInp x nHid]
+        % NN weights
+        V;	% Inner weights, [nInp x nHid]
         W;  % Outer weights, [nHid x nOut]
         
-        % NN controller parameters
+        % Controller parameters
         Kv;
         lam;
         F;
         G;
-        kappa  = 0.001;
-        Kz     = 0.05;
-        Zb     = 100;
+        kappa;
+        Kz;
+        Zb;
         
         % Output
         f_hat;  % NN output
         fc;     % Control force
         fc_exp; % Expected control force
         
+        % Prescribed error dynamics
+        Kd;
+        Dd;
+        gamma;
+        lambda;
+        fl;
+        
+        % Flags
+        NN_on;      % Use NN output in controller
+        PED_on;     % Use prescribed error dybnamics
+        RB_on;      % Use robustifying term
+        
     end
     
     properties (SetAccess = private)
         % Allow read-only. To change use set methods.
         
-        nInp;      % Number of inputs
+        nInp;     % Number of inputs
         nHid;     % Size of hidden layer
         nOut;     % Number of outputs
         
@@ -40,19 +53,38 @@ classdef classNeuroAdaptive
             o.nHid = nHidden;
             o.nOut = nOutput;
             
-            % Initialize random weights on the interval [a, b]
-            a = -0.1; b=0.1;
+            % Initialize random NN weights on the interval [a, b]
+            a = -0.1;
+            b =  0.1;
             o.W = a + (b-a).*rand( o.nHid, o.nOut );
             o.V = a + (b-a).*rand( o.nInp , o.nHid );
             
+            % Controller parameters
             o.Kv     = 10  *eye(o.nOut) ;
             o.lam    = 20  *eye(o.nOut) ;
             o.F      = 100 *eye(o.nHid) ;
             o.G      = 100 *eye(o.nInp) ;
             
+            o.kappa  = 0.001;
+            o.Kz     = 0.05;
+            o.Zb     = 100;
+            
+            % Output
             o.f_hat  = 0;
             o.fc     = 0;
             o.fc_exp = 0;
+                       
+            % Prescribed error dynamics
+            o.Kd     = 20.0 *eye(o.nOut);
+            o.Dd     = 10.0 *eye(o.nOut);
+            o.fl     = zeros(o.nOut,1);
+            o.gamma  = 9.5 *eye(o.nOut);
+            o.lambda = 0.5 *eye(o.nOut);
+            
+            % Flags          
+            o.NN_on  = 1;
+            o.PED_on = 1;
+            o.RB_on  = 1;
             
         end
         
@@ -72,29 +104,45 @@ classdef classNeuroAdaptive
     methods     % computational methods
         
         function o = update(o, q, qd, x, xd, x_m, xd_m, xdd_m, fh, dt)
-            % NN update step
-            
-            % Prescribed Error dynamics
+            % Neuroadaptive controller update step
             
             % Tracking errors
             e  = x_m  - x   ;
             ed = xd_m - xd  ;
-            r  = ed  + o.lam*e ;  % sliding mode error
+            
+            % Prescribed Error dynamics
+            if(o.PED_on)
+                o.gamma = o.Dd - o.lambda;
+
+                lambda_dot = o.Kd - o.gamma * o.lambda;
+                o.lambda = o.lambda + lambda_dot * dt;      % TODO: check for convergence?
+
+                fl_dot = fh - o.gamma * o.fl;
+                o.fl = o.fl + fl_dot * dt;
+                
+                r  = ed  + o.lambda*e - o.fl;   % Sliding mode error
+            else 
+                r  = ed  + o.lam*e ;            % Sliding mode error            
+            end
             
             % Robustifying term
-            Z = [ o.W, zeros(o.nHid, o.nHid)
-                  zeros(o.nInp, o.nOut), o.V ];
-            v = - o.Kz*(norm(Z) + o.Zb)*r;
+            if(o.RB_on)
+                Z = [ o.W, zeros(o.nHid, o.nHid)
+                    zeros(o.nInp, o.nOut), o.V ];
+                v = - o.Kz*(norm(Z) + o.Zb)*r;
+            else
+                v = zeros(o.nOut,1);
+            end
             
             % Input to NN
             y = [ e; ed; x; xd; x_m; xd_m; xdd_m; q; qd ];
             
             % Nonlinear terms
-            S = sigmoid(o.V'*y);              % Hidden layer output
+            S = sigmoid(o.V'*y);            % Hidden layer output
             o.f_hat = o.W'*S;
             
             % Control force
-            o.fc = o.Kv*r + 1.0*(o.f_hat - v);  % TODO flag for NN off
+            o.fc = o.Kv*r + (o.f_hat - v).*(o.NN_on);
             
             % Expected Control force
             [Mx,Cx,Gx] = robotDynamicsCartesian(q, qd);

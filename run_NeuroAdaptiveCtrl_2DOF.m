@@ -89,10 +89,10 @@ xdd_m_1 = [ 0 0 ]' ;
 
 %--------------------------
 % Prescribed error dynamics
-global gamma lambda fl
-gamma = 9.5 .* eye(2)  ;
-lambda = 0.5 .* eye(2)  ;
-fl = zeros(2,1);
+% global gamma lambda fl
+% gamma = 9.5 .* eye(2)  ;
+% lambda = 0.5 .* eye(2)  ;
+% fl = zeros(2,1);
 
 %--------------------------
 
@@ -166,9 +166,9 @@ for k=1:N
     data.xdd_m   (k,:) = xdd_m_';
     data.tau     (k,:) = tau';
     data.tau_exp (k,:) = tau_exp';
-    data.lambda  (k,:) = lambda(:);
-    data.gamma   (k,:) = gamma(:);
-    data.fl      (k,:) = fl(:);
+    data.lambda  (k,:) = na.lambda(:);
+    data.gamma   (k,:) = na.gamma(:);
+    data.fl      (k,:) = na.fl(:);
     data.fh      (k,:) = fh(1);
    
     data.x_h     (k,:) = x_h(end);  % 1-D data
