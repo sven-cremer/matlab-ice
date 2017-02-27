@@ -1,13 +1,18 @@
+% Animates a 2 DOF robot in the xy-plane with time on the z-axis
+% Author: Sven Cremer
 clear all; close all; clc;
 
-load('sim1.mat')
+expName = '02';
+fName   = 'sim.mat';
 
 %------------- BEGIN CODE --------------
 
-m1 = rMass(1);
-m2 = rMass(2);
-a1 = rLength(1);
-a2 = rLength(2);
+load(['data_exp',expName,'/',fName])
+
+m1 = robot.mass(1);
+m2 = robot.mass(2);
+a1 = robot.length(1);
+a2 = robot.length(2);
 
 %% Animation
 figure;
