@@ -57,7 +57,10 @@ classdef classNeuroAdaptive
             a = -0.1;
             b =  0.1;
             o.W = a + (b-a).*rand( o.nHid, o.nOut );
-            o.V = a + (b-a).*rand( o.nInp , o.nHid );
+            o.V = a + (b-a).*rand( o.nInp, o.nHid );
+            %o.W = zeros( o.nHid, o.nOut );     <- Could be unstable
+            %o.V = zeros( o.nInp, o.nHid );
+            
             
             % Controller parameters
             o.Kv     = 10  *eye(o.nOut) ;

@@ -22,7 +22,14 @@
 %------------- BEGIN CODE --------------
 clear all; close all; clc;
 
+saveData = true;
+plotData = true;
+saveFigs = false;
+plotNN   = false;
+
 expName = '02';
+
+%--------------------------
 
 dirData = ['data_exp',expName];
 dirFigs = [dirData,'/fig'];
@@ -36,31 +43,18 @@ end
 
 fName = 'sim.mat';
 
-saveData = true;
-plotData = true;
-saveFigs = false;
-plotNN   = false;
-
-global tau tau_exp
-
 %--------------------------
 % Simulation time
 t0 = 0;
 tf = 10;    % 80
-Ts = 0.005;   % Controller time step (smaller = better)
+Ts = 0.003;   % Controller time step (smaller = better)
 
 %--------------------------
 % Robot (2DOF)
-
 robot = classRobot(2);
 
 robot.mass      = [0.4;0.8];
 robot.length    = [1;1];
-
-global rMass rLength gravity
-rMass = [0.4;0.8];
-rLength = [1;1]; 
-gravity = 9.81;
 
 %--------------------------
 % Neuroadpative controller
@@ -76,12 +70,10 @@ na = classNeuroAdaptive(input,hidden,output);
 % na.gamma  = ...
 
 %--------------------------
-% Discrete Cartesian model states
-global x_m_ xd_m_ xdd_m_
-
-% Reference Input
+% Reference Trajctory - TODO make class
 discreteRefTraj = true;
 inputFlag = 1;
+
 x_ref = [ 0.5  1.5 ]';
 
 x_m_    = x_ref;	% [ 0 0 ]'; 
@@ -106,7 +98,7 @@ xdC0 = [0; 0];
 x0= [  q0(1)        ; %  1 q1
        q0(2)        ; %  2 q2
        qd0(1)       ; %  3 qd1
-       qd0(2)       ]; %  4 qd2
+       qd0(2)      ]; %  4 qd2
 
 N = round((tf-t0)/Ts);     % Data samples
 fprintf('Sampels: %d\n',N)
@@ -246,11 +238,12 @@ for k=1:N
     
     % Torque saturation
     tau = torqueSaturation(robot, tau);
+    robot.tau = tau;
     
     %--------------------------
     % PLANT - ROBOT SIMMULATION STEP
     
-    [tDel,xDel]= ode45(@robotModel, [tStart tStop], x0);
+    [tDel,xDel]= ode45(@(t,x)odeSim(t,x,robot), [tStart tStop], x0);
   
     % Check for warnings
     [m,id]=lastwarn();

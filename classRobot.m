@@ -234,6 +234,48 @@ classdef classRobot
         end
         
         
+        function xdot = odeSim(t, x, robot)
+            % Function for ODE solver, assumes robot.tau is up-to-date
+            
+            % Error checking
+            idxNaN = isnan(x);
+            if( sum( idxNaN(:) ) > 0 )
+                disp('Error: x contains NaN values inside odeSim()');
+                x(idxNaN) = 0;
+            end
+            
+            % ROBOT STATE
+            tau_c = robot.tau;
+            
+            q  = [x(1) x(2)]';
+            qd = [x(3) x(4)]';
+            
+            % ROBOT ARM DYNAMICS SIMULATION
+            
+            [Mq,Cq,Gq] = dynamicsJoint(robot, q, qd);
+            
+            % Arm dynamics
+            qdd = inv(Mq)*(-Cq*qd-Gq+tau_c);
+            
+            % Disturbance turque tau_d
+            %         taud = 1;
+            %         tau1 = tau1 + taud;
+            %         tau1 = tau1 + taud;
+            
+            % Human disturbance
+            %         tau_hum = Jtrans*f_hum;
+            
+            % --------------------------------------
+            
+            % Update state equation
+            xdot= [ qd(1)  ;
+                    qd(2)  ;
+                    qdd(1) ;
+                    qdd(2) ];
+            
+        end
+        
+        
              
     end
     
