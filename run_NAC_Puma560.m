@@ -11,8 +11,8 @@ nJoints = p560.n;
 
 % Simulation time
 t0 = 0;
-tf = 10;
-ts = 0.01;
+tf = 5;
+ts = 0.05;
 
 t = [t0:ts:tf]';
 N = length(t);
@@ -54,6 +54,10 @@ xt = [t xC rC];
 %% Start simulation
 global counter
 counter = 0;
+
+global lastUpdate;
+lastUpdate = 0;
+
 tic
 
 [T, q ,qd] = p560.nofriction.fdyn(10,@torqueFunction,q0,zeros(1,6));
