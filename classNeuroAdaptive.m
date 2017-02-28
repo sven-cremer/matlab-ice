@@ -138,7 +138,8 @@ classdef classNeuroAdaptive
             end
             
             % Input to NN
-            y = [ e; ed; x; xd; x_m; xd_m; xdd_m; q; qd ];
+            %y = [ e; ed; x; xd; x_m; xd_m; xdd_m; q; qd ];
+            y = [ o.fl; fl_dot; diag(o.lambda); diag(lambda_dot); q; qd; e; ed; x_m; xd_m];
             
             % Nonlinear terms
             S = sigmoid(o.V'*y);            % Hidden layer output

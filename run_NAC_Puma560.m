@@ -7,6 +7,7 @@ startup_rvc     % Launch Robotics Toolbox
 mdl_puma560     % Load Puma 560 robot
 % mdl_p8        % Puma on an xy base
 nJoints = p560.n;
+nCart   = 6;
 %p560.gravity = [0;0;0];
 
 % Simulation time
@@ -19,11 +20,11 @@ N = length(t);
 
 % Neuroadpative controller
 global na
-input  = nJoints*9
-output = nJoints
-hidden = 108
+input  = nCart*10
+output = nCart
+hidden = 15
 na = classNeuroAdaptive(input,hidden,output);
-na.PED_on = 0;
+na.PED_on = 1;
 
 % PD controller
 global Pgain Dgain 
