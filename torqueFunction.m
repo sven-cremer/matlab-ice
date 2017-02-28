@@ -3,7 +3,7 @@ function tau = torqueFunction(robot, t, q, qd)
 global qt xt;
 global Pgain Dgain na;
 global counter;
-global lastUpdate;
+global lastUpdate controllerStep;
 
 NN_off = 0;
 
@@ -45,6 +45,11 @@ else
     f_h    = zeros(6,1);
     
     delT = t-lastUpdate;
+    if( delT < controllerStep )
+        delT = 0;   % No update to weights
+    else
+        lastUpdate = t;
+    end
     
     na = update(na, q', qd', xC, xdC, x_m_, xd_m_, xdd_m_, f_h, delT);
     fc     = na.fc;
@@ -75,7 +80,7 @@ else
         tau(idxNaN) = 0;
     end
     
-    lastUpdate = t;
+    
 end
 
 % Display progress
