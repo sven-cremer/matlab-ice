@@ -6,7 +6,7 @@ global lastUpdate controllerStep;
 global tau;
 global data;
 
-NN_off = 1;
+NN_off = 0;
 Gravity_Compensation = 1;
 
 % From main:
@@ -85,8 +85,8 @@ end
 tau = (J'*fc)' + tau_g;
 
 % Torque Saturation
-tau_max = 10;
-tau_min = -10;
+tau_max = 100;
+tau_min = -100;
 idxMax = tau > tau_max;
 idxMin = tau < tau_min;
 %     if( sum(idxMax(:)) + sum(idxMin(:)) > 0)
