@@ -6,7 +6,8 @@ global counter;
 global lastUpdate controllerStep;
 global tau;
 
-NN_off = 1;
+NN_off = 0;
+Gravity_Compensation = 1;
 
 % From main:
 % t = qt(:,1);      % 0 -> 10
@@ -23,6 +24,12 @@ if( delT < controllerStep )
 end
 
 lastUpdate = t;
+
+if(Gravity_Compensation)
+    tau_g = robot.gravload(q);
+else
+    tau_g = zeros(1,6);
+end
 
 % Compute torque
 if(NN_off)
@@ -47,7 +54,7 @@ if(NN_off)
     
     fc = diag(Pgain) * (x_des-xC)  - diag(Dgain) * xdC;
     
-    tau =  (J'*fc)';
+    tau = (J'*fc)' + tau_g;
     
 else
     %--------------------------
@@ -77,7 +84,7 @@ else
     na = update(na, q', qd', xC, xdC, x_m_, xd_m_, xdd_m_, f_h, delT);
     fc     = na.fc;
     
-    tau    =  (J'*fc)';
+    tau = (J'*fc)' + tau_g;
     
     % Torque Saturation
     tau_max = 10;
