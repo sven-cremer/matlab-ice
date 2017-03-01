@@ -13,10 +13,10 @@ nCart   = 6;
 % Simulation time
 t0 = 0;
 tf = 3;
-ts = 0.05;
+ts = 0.0001;
 
 t = [t0:ts:tf]';
-N = length(t);
+N = length(t)
 
 % Neuroadpative controller
 global na
@@ -101,9 +101,12 @@ data.tau     = zeros(1,6);
 global counter
 counter = 0;
 
-global lastUpdate controllerStep;
+global lastUpdate controllerStep
 lastUpdate = 0;
-controllerStep = 0.05;
+controllerStep = ts;
+
+global tau
+tau = zeros(1,nJoints);
 
 tic
 
@@ -119,8 +122,8 @@ T = p560.fkine(q_sim);
 x_sim = [transl(T), tr2rpy(T)];
 
 %% Plot results
-h = figure;
-set(h,'position',[75   675   560   840]);
+figure;
+set(gcf,'position',[75   675   560   840]);
 for i=1:nJoints
     subplot(nJoints,1,i)
     hold on; grid on;
@@ -131,8 +134,8 @@ for i=1:nJoints
     suptitle('JOINT POSITION')
 end
 
-h = figure;
-set(h,'position',[675   675   560   840]);
+figure;
+set(gcf,'position',[675   675   560   840]);
 for i=1:nJoints
     subplot(nJoints,1,i)
     hold on; grid on;
@@ -144,8 +147,8 @@ for i=1:nJoints
 end
 
 %% Cartesian pose
-h = figure;
-set(h,'position',[75   675   560   840]);
+figure;
+set(gcf,'position',[75   675   560   840]);
 ylab = {'x [m]','y [m]','z [m]','roll [rad]','pitch [rad]','yaw [rad]'};
 for i=1:6
     subplot(6,1,i)
@@ -163,5 +166,6 @@ end
 %plot(t,norm(q_sim-q))
  
 %% Animate robot
+return
 figure
-p560.plot(q)
+p560.plot(q_sim,'trail',':r','fps', Inf)

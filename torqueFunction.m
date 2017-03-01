@@ -4,8 +4,9 @@ global qt xt;
 global Pgain Dgain na;
 global counter;
 global lastUpdate controllerStep;
+global tau;
 
-NN_off = 0;
+NN_off = 1;
 
 % From main:
 % t = qt(:,1);      % 0 -> 10
@@ -15,6 +16,13 @@ NN_off = 0;
 if t > qt(end,1)
     t = qt(end,1);
 end
+
+delT = t-lastUpdate;
+if( delT < controllerStep )
+    return;   % No update to tau
+end
+
+lastUpdate = t;
 
 % Compute torque
 if(NN_off)
@@ -59,12 +67,12 @@ else
     
     f_h    = zeros(6,1);
     
-    delT = t-lastUpdate;
-    if( delT < controllerStep )
-        delT = 0;   % No update to weights
-    else
-        lastUpdate = t;
-    end
+%     delT = t-lastUpdate;
+%     if( delT < controllerStep )
+%         delT = 0;   % No update to weights
+%     else
+%         lastUpdate = t;
+%     end
     
     na = update(na, q', qd', xC, xdC, x_m_, xd_m_, xdd_m_, f_h, delT);
     fc     = na.fc;
@@ -94,8 +102,7 @@ else
         disp('Error: x contains NaN values inside odeSim()');
         tau(idxNaN) = 0;
     end
-    
-    
+   
 end
 
 % Save results
@@ -107,10 +114,10 @@ end
 % data.tau(idx) = tau';
 
 % Display progress
-counter = counter + 1;
-if(mod(counter,100) == 0 )
+%counter = counter + 1;
+%if(mod(counter,100) == 0 )
     str = sprintf('\rTime completed: %.3f\n',t(end));
     fprintf(repmat('\b',1,numel(str)));
     fprintf(str);
-end
+%end
 
