@@ -110,12 +110,41 @@ tic
 
 toc
 
-e = q_sim(end,:) - q1
-norm(e)
-
-% Compute Cartesian path
+%% Compute Cartesian path
 T = p560.fkine(q_sim);
 x_sim = [transl(T), tr2rpy(T)];
+
+%% Cartesian error (min)
+M = size(x_sim,1);
+
+err_c = zeros(M,1);
+for i=1:M
+    dif = x_ref - repmat(x_sim(i,:),N,1);   % Difference
+    nor = sqrt(sum(abs(dif).^2,2));         % Norms
+    err_c(i) = min( nor );                  % Take the value closest to x_ref 
+end
+
+figure;
+plot(t_sim, err_c)
+total_error = sum(err_c)
+title(sprintf('Cartesian error norm vs time (total: %.1f)',total_error))
+
+%% Joint error
+
+q_int = interp1(t, q, t_sim );
+err_j = sqrt(sum(abs(q_sim - q_int).^2,2));
+
+% err_j = zeros(M,1);
+% for i=1:M
+%     dif = q - repmat(q_sim(i,:),N,1);   % Difference
+%     nor = sqrt(sum(abs(dif).^2,2));         % Norms
+%     err_j(i) = min( nor );                  % Take the value closest to x_ref
+% end
+
+figure;
+plot(t_sim, err_j)
+total_error = sum(err_j)
+title(sprintf('Joint error norm vs time (total: %.1f)',total_error))
 
 %% Plot results
 figure;
@@ -143,6 +172,7 @@ for i=1:nJoints
 end
 
 %% Cartesian pose
+%{
 figure;
 set(gcf,'position',[75   675   560   840]);
 ylab = {'x [m]','y [m]','z [m]','roll [rad]','pitch [rad]','yaw [rad]'};
@@ -157,13 +187,14 @@ for i=1:6
     ylabel(ylab{i})
     suptitle('POSE')
 end
+%}
 
 %figure
 %plot(t,norm(q_sim-q))
 
 %%
-plotVariable(data,'q_')
-plotVariable(data,'qd_')
+%plotVariable(data,'q_')
+%plotVariable(data,'qd_')
 
 plotVariable(data,'xd_')
 plotVariable(data,'tau_')
