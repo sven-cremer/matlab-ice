@@ -46,10 +46,10 @@ global qt xt
 %T0 = p560.fkine(q0)
 %T1 = p560.fkine(q1)
 
-x0 = [0.3; -0.3; 0.60];
+x0 = [0.4; -0.3; 0.60];
 r0 = [0,0,0];
 
-x1 = [0.4; -0.2; 0.60];
+x1 = [0.2; 0.2; 0.60];
 r1 = [0,0,0];
 
 T0 = transl(x0)*rpy2tr(r0);
@@ -92,15 +92,11 @@ xt = [t x_ref];
 % hold on;
 % plot(transl(T))
 
-%% Store data
-
-data.t       = zeros(1,1);
-data.tau     = zeros(1,6);
+%% Storing data
+global data
+data = classData(3000,output,nJoints); % TODO actually < N
 
 %% Start simulation
-global counter
-counter = 0;
-
 global lastUpdate controllerStep
 lastUpdate = 0;
 controllerStep = ts;
@@ -165,6 +161,19 @@ end
 %figure
 %plot(t,norm(q_sim-q))
 
+%%
+plotVariable(data,'q_')
+plotVariable(data,'qd_')
+
+plotVariable(data,'xd_')
+plotVariable(data,'tau_')
+
+%%
+plotVariable(data,'x_')
+plotVariable(data,'x_m_',0,':r')
+legend('x','x_m')
+suptitle('Cartesian Pose')
+
 return
 %% Animate robot
 figure; hold on;
@@ -180,3 +189,4 @@ figure
 %p560.delay = ts;
 % q_sim(500:end,:)
 p560.plot(q_int,'trail',':r','delay',simStep)
+disp('Done!')
