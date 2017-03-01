@@ -22,7 +22,7 @@ N = length(t)
 global na
 input  = nCart*10
 output = nCart
-hidden = 27
+hidden = 100
 na = classNeuroAdaptive(input,hidden,output);
 na.PED_on = 1;
 
@@ -164,8 +164,19 @@ end
 
 %figure
 %plot(t,norm(q_sim-q))
- 
-%% Animate robot
+
 return
+%% Animate robot
+figure; hold on;
+
+simStep = 0.01;
+t_int = [ts:simStep:tf]';
+q_int   = interp1(t_sim, q_sim, t_int);
+
+plot(t_sim,'-r');
+plot(t_int,'-b');
+
 figure
-p560.plot(q_sim,'trail',':r','fps', Inf)
+%p560.delay = ts;
+% q_sim(500:end,:)
+p560.plot(q_int,'trail',':r','delay',simStep)
