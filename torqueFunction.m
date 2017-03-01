@@ -19,13 +19,28 @@ end
 % Compute torque
 if(NN_off)
     %--------------------------
-    % PD controller
+    % PD controller - Joint
     
     % Desired joint position 
-    q_int = interp1(qt(:,1), qt(:,2:7), t); % interpolated angle time t (from ode45)
+%     q_int = interp1(qt(:,1), qt(:,2:7), t); % interpolated angle time t (from ode45)
+%     
+%     e = q_int - q;
+%     tau = e * diag(Pgain) - qd * diag(Dgain);
     
-    e = q_int - q;
-    tau = e * diag(Pgain) + qd * diag(Dgain);
+    J = robot.jacobn(q);
+    
+    % Get current state
+    T = robot.fkine(q);
+    xC  = [transl(T); tr2rpy(T)'];
+    xdC = J * qd';
+    
+    % Desired position
+    x_des   = interp1(xt(:,1), xt(:,2:7), t)';
+    
+    fc = diag(Pgain) * (x_des-xC)  - diag(Dgain) * xdC;
+    
+    tau =  (J'*fc)';
+    
 else
     %--------------------------
     % Neuroadaptive controller
@@ -82,6 +97,14 @@ else
     
     
 end
+
+% Save results
+% idx = find(data.t == t);
+% if(idx == 0)
+% idx = size(data.t,1) + 1;
+% end
+% data.t  (idx) = t;
+% data.tau(idx) = tau';
 
 % Display progress
 counter = counter + 1;
