@@ -2,12 +2,10 @@ function tau = torqueFunction(robot, t, q, qd)
 
 global qt xt;
 global Pgain Dgain na;
-global lastUpdate controllerStep;
+global lastUpdate updateStep;
 global tau;
 global data;
-
-NN_off = 0;
-Gravity_Compensation = 1;
+global NN_off GC_on
 
 % From main:
 % t = qt(:,1);      % 0 -> 10
@@ -19,14 +17,14 @@ if t > qt(end,1)
 end
 
 delT = t-lastUpdate;
-if( delT < controllerStep )
+if( delT < updateStep )
     return;   % No update for tau
 end
 
 %% Update tau
 lastUpdate = t;
 
-if(Gravity_Compensation)
+if(GC_on)
     tau_g = robot.gravload(q);
 else
     tau_g = zeros(1,6);
@@ -77,7 +75,7 @@ else
 %     end
     
     na = update(na, q', qd', xC, xdC, x_m_, xd_m_, xdd_m_, f_h, delT);
-    fc     = na.fc;
+    fc = na.fc;
     
 end
 
@@ -132,7 +130,7 @@ data.gamma_  (k,:) = diag(na.gamma)';
 data.idx = k + 1;
 
 %% Display progress
-str = sprintf('\rTime completed: %.4f\n',t(end));
+str = sprintf('\nTime completed: %.4f\n',t(end));
 fprintf(repmat('\b',1,numel(str)));
 fprintf(str);
 

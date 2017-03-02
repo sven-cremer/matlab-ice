@@ -2,13 +2,16 @@
 % Author: Sven Cremer
 clear all; close all; clc;
 
+expName = '01';         % Data directory: data_pumaXX/
+
 saveData        = 1;
 plotData        = 1;
-saveFigures     = 1;
+saveFigures     = 0;
 animateRobot    = 0;
 plotNNweights   = 0;
 
-expName = '02';         % Data directory: data_pumaXX/
+NN_on           = 1;     % If 0, then PID is on
+GravityComp_on  = 1;
 
 %% Setup simulation
 
@@ -19,7 +22,6 @@ mdl_puma560     % Load Puma 560 robot
 
 nJoints = p560.n;
 nCart   = 6;
-%p560.gravity = [0;0;0];
 
 % Simulation time
 t0 = 0;
@@ -27,21 +29,21 @@ tf = 3;
 ts = 0.0001;
 
 t = [t0:ts:tf]';
-N = length(t)
+N = length(t);
 
 %% Neuroadpative controller
 global na
-input  = nCart*10
-output = nCart
-hidden = 18
+input  = nCart*10;
+output = nCart;
+hidden = 18;
 na = classNeuroAdaptive(input,hidden,output);
 na.PED_on = 1;
+fprintf(' Inputs: %d\n Hidden: %d\n Outputs: %d\n',input,hidden,output)
 
 %% PD controller
 global Pgain Dgain 
 %Pgain = 1000.*ones(6,1);
 %Dgain = 100.*ones(6,1);
-
 Pgain = [100 500 5000 10 10 10];
 Dgain = [10 20 50 5 5 5];
 
@@ -105,28 +107,32 @@ xt = [t x_ref];
 
 %% Storing data
 global data
-data = classData(3000,output,nJoints); % TODO actually < N
+data = classData(round(N/3),output,nJoints); % TODO actually < N
 
 %% Start simulation
-global lastUpdate controllerStep
-lastUpdate = 0;
-controllerStep = ts;
-
+global NN_off GC_on
+global lastUpdate updateStep
 global tau
+
+NN_off  = ~NN_on;
+GC_on   = GravityComp_on;
+lastUpdate = 0;
+updateStep = ts;
 tau = zeros(1,nJoints);
 
 tic
 
-[t_sim, q_sim ,qd_sim] = p560.nofriction.fdyn(tf,@torqueFunction,q0,zeros(1,6));
+[t_sim, q_sim ,qd_sim] = p560.nofriction.fdyn(tf,@torqueFunction,q0,zeros(1,nJoints));
 
 toc
+
+fprintf('Data points: %d\n',data.idx);
 
 %% Compute Cartesian path
 T = p560.fkine(q_sim);
 x_sim = [transl(T), tr2rpy(T)];
 
 %% Cartesian error
-
 x_int = interp1(t, x_ref, t_sim );
 err_c = sqrt(sum(abs(x_sim - x_int).^2,2));
 
@@ -143,11 +149,11 @@ fprintf('Total Cartesian error: %.1f\n',err_c_tot);
 % end
 
 figure;
-plot(t_sim, err_c)
+plot(t_sim, err_c);
+grid on;
 title(sprintf('Cartesian Error Norm (total: %.1f)',err_c_tot))
 
 %% Joint error
-
 q_int = interp1(t, q, t_sim );
 err_j = sqrt(sum(abs(q_sim - q_int).^2,2));
 
@@ -155,8 +161,8 @@ err_j_tot = sum(err_j);
 fprintf('Total joint error: %.1f\n',err_j_tot);
 
 figure;
-plot(t_sim, err_j)
-total_error = sum(err_j)
+plot(t_sim, err_j);
+grid on;
 title(sprintf('Joint Error Norm (total: %.1f)',err_j_tot))
 
 %% Plot results
