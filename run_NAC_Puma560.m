@@ -1,7 +1,7 @@
 % Simulates the 6DOF Puma 560 robot using Peter Cork's Robotics Toolbox
 % Author: Sven Cremer
 clear all; close all; clc;
-
+rng(0)
 expName = '01';         % Data directory: data_pumaXX/
 
 saveData        = 1;
@@ -10,7 +10,7 @@ saveFigures     = 0;
 animateRobot    = 1;
 plotNNweights   = 0;
 
-NN_on           = 0;     % If 0, then PID is on
+NN_on           = 1;     % If 0, then PID is on
 GravityComp_on  = 1;
 
 %% Setup simulation
@@ -38,7 +38,13 @@ output = nCart;
 hidden = 18;
 na = classNeuroAdaptive(input,hidden,output);
 na.PED_on = 1;
+na.RB_on  = 1;
 fprintf(' Inputs: %d\n Hidden: %d\n Outputs: %d\n',input,hidden,output)
+
+na.Kv  = diag([10,10,10, 0.01,0.01,0.01]);
+na.lam = diag([20,20,20, 0.1,0.1,0.1]);
+%na.Kd  = diag([20,20,20, 10,10,10]);
+%na.Dd  = diag([10,10,10, 5,5,5]);
 
 %% PD controller
 global Pgain Dgain 
@@ -63,7 +69,9 @@ x0 = [0.4; -0.3; 0.60];
 r0 = [0,0,0];
 
 x1 = [0.2; 0.2; 0.60];
-r1 = [12,-12,-6].*(pi/180);
+r1 = [8,2,0].*(pi/180);
+%r1 = [12,-12,-6].*(pi/180);
+% p560.plot(p560.ikine(transl([0.2; 0.2; 0.60])*rpy2tr([10,2,3].*(pi/180))))
 
 T0 = transl(x0)*rpy2tr(r0);
 T1 = transl(x1)*rpy2tr(r1);
@@ -194,7 +202,7 @@ for i=1:nJoints
 end
 
 figure;
-set(gcf,'position',[175   675   560   840]);
+set(gcf,'position',[75   675   560   840]);
 for i=1:nJoints
     subplot(nJoints,1,i)
     hold on; grid on;
@@ -216,7 +224,26 @@ plotVariable(data,'x_m_',0,':r')
 legend('x','x_m')
 
 plotVariable(data,'xd_')
+
 plotVariable(data,'tau_')
+%plotVariable(data,'tau_exp',0,':r')
+%legend('NN','Actual')
+
+plotVariable(data,'fl_')
+
+plotVariable(data,'fc_')
+plotVariable(data,'f_hat_',0,':r')
+
+plotVariable(data,'gamma_')
+plotVariable(data,'lambda_')
+
+plotVariable(data,'normW_')
+plotVariable(data,'normV_')
+
+plotWeights(na, [-1 1])
+colorbar;
+plotWeights(na, [-100 100])
+colorbar;
 
 figure;
 grid on;
@@ -257,7 +284,7 @@ end
 %%
 % Compute q(t) with a fixed time step
 simStep = 0.01;
-t_int = [ts:simStep:tf]';
+t_int   = [ts:simStep:tf]';
 q_int   = interp1(t_sim, q_sim, t_int);
 
 figure

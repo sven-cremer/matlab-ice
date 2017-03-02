@@ -21,10 +21,11 @@ classdef classData
         fl_;
         
         % Output
-        %f_hat_;  % NN output
+        f_hat_;  % NN output
         fc_;     % Control force
         tau_;    % Control torque
-        %fc_exp;  % Expected control force
+        fc_exp;  % Expected control force
+        tau_exp; % Expected control torque
         
         % Robot state
         nJoints;
@@ -77,10 +78,11 @@ classdef classData
             data.gamma_  = zeros(N,nOut);
             data.fl_     = zeros(N,nOut);
             
-            %data.f_hat_  = zeros(N,numOut);
+            data.f_hat_  = zeros(N,nOut);
             data.fc_     = zeros(N,nOut);
             data.tau_    = zeros(N,nOut);
-            %data.tau_exp = zeros(N,numOut);
+            data.fc_exp  = zeros(N,nOut);
+            data.tau_exp = zeros(N,nOut);
             
             data.x_      = zeros(N,nOut);
             data.xd_     = zeros(N,nOut);
@@ -144,6 +146,7 @@ classdef classData
             if(N == 1)
                 
                 plot(t, y, varargin{:})
+                grid on;
                 title(str,'interpreter','none')
                 
             else

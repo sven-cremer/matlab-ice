@@ -122,12 +122,20 @@ data.xd_m_   (k,:) = xd_m_';
 data.normW_  (k,:) = norm(na.W);
 data.normV_  (k,:) = norm(na.V);
 
+data.fl_     (k,:) = na.fl';
+data.f_hat_  (k,:) = na.f_hat';
 data.fc_     (k,:) = fc';
 data.tau_    (k,:) = tau';
 data.lambda_ (k,:) = diag(na.lambda)';
 data.gamma_  (k,:) = diag(na.gamma)';
 
 data.idx = k + 1;
+
+%% Display NN weights
+if(false)
+    plotWeights(na)
+    pause(0.0001)
+end
 
 %% Display progress
 str = sprintf('\nTime completed: %.4f\n',t(end));
