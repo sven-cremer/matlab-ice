@@ -22,7 +22,7 @@ N = length(t)
 global na
 input  = nCart*10
 output = nCart
-hidden = 100
+hidden = 18
 na = classNeuroAdaptive(input,hidden,output);
 na.PED_on = 1;
 
@@ -205,16 +205,24 @@ plotVariable(data,'x_m_',0,':r')
 legend('x','x_m')
 suptitle('Cartesian Pose')
 
+%%
+figure; hold on;
+grid on;
+%hist(t_sim,round(length(t_sim)/100))
+plot(1000.*diff(t_sim))
+ylabel('Time step [ms]'); xlabel('ODE iteration number');
+%plot(t_sim,'-r');
+%plot(t_int,'-b');
+
+%% Save figures and results
+
 return
 %% Animate robot
-figure; hold on;
 
+% Compute q(t) with a fixed time step
 simStep = 0.01;
 t_int = [ts:simStep:tf]';
 q_int   = interp1(t_sim, q_sim, t_int);
-
-plot(t_sim,'-r');
-plot(t_int,'-b');
 
 figure
 %p560.delay = ts;
