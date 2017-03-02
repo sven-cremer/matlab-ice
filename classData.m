@@ -103,40 +103,6 @@ classdef classData
     end
   
     methods     % data analysis
-               
-        function plotJoints(data, t_sim, q_sim,  qd_sim)
-            
-            figure;
-            set(gcf,'position',[75   675   560   840]);
-            
-            for i=1:data.nJoints
-                subplot(data.nJoints,1,i)
-                hold on; grid on;
-                
-                plot(t_sim, q_sim(:,i),'-b')
-                plot(data.t, data.q_(:,i),':r')
-                
-                xlabel('Time [s]');
-                ylabel(sprintf('Joint %d [rad]',i))
-                suptitle('JOINT POSITION')
-            end
-            
-            figure;
-            set(gcf,'position',[675   675   560   840]);
-            
-            for i=1:data.nJoints
-                subplot(data.nJoints,1,i)
-                hold on; grid on;
-                
-                plot(t_sim, qd_sim(:,i),'-b')
-                plot(data.t, data.qd_(:,i),':r')
-                
-                xlabel('Time [s]');
-                ylabel(sprintf('Joint %d [rad]',i))
-                suptitle('JOINT VELOCITY')
-            end
-            
-        end
         
         function plotVariable(data, str, new_fig, varargin)
             % Plots class variable defined in string str
@@ -154,14 +120,12 @@ classdef classData
                 hold on;
                 % Extract numbers in ylabels for selecting correct subplot
                 h_ax = get(gcf,'children');
-                h_la = get(h_ax,'ylabel');
-                J = length(h_la);
+                J = length(h_ax);
                 lab = zeros(J,1); % Mapping from subplot index to label number
                 for j=1:J
-                    s = get(h_la{j},'string');
-                    A = regexp(s,'\d*','Match');
-                    if( length(A)==1 )
-                        lab(j) = str2num(A{1});
+                    s = get(h_ax(j),'Tag');
+                    if( ~isempty(s) )
+                        lab(j) = str2num(s);
                     end
                 end
             end
@@ -180,6 +144,7 @@ classdef classData
             if(N == 1)
                 
                 plot(t, y, varargin{:})
+                title(str,'interpreter','none')
                 
             else
                 
@@ -188,7 +153,7 @@ classdef classData
                 for i=1:N
                     % Select subplot
                     if(new_fig)
-                        subplot(N,1,i);
+                        subplot(N,1,i,'Tag',num2str(i));
                     else
                         idx = 1;
                         for j=1:length(lab) 
@@ -204,8 +169,12 @@ classdef classData
                     %plot(data.t, data.tau_exp_(:,i),':r')
                     
                     xlabel('Time [s]');
-                    ylabel(sprintf('Joint %d [rad]',i))
-                    suptitle(strrep(str,'_','\_'))
+                    ylabel(data.getLabel(str,i))
+                    %ylabel(sprintf('Joint %d [rad]',i))
+                    if( i == 1 )
+                        title(data.getTitle(str))
+                    end
+                    %suptitle(strrep(str,'_','\_'))
                 end
             end
             
@@ -218,7 +187,47 @@ classdef classData
 %         function disp(data)
 %             fprintf(data. ...);
 %         end
-             
     end
-    
+        
+    methods  (Access=private)
+        
+        function s = getLabel(data, var, idx)
+            
+            s = [];
+            
+            if( var(1) == 'x' )
+                l = {'x [m]','y [m]','z [m]','roll [rad]','pitch [rad]','yaw [rad]'};
+                s = l(idx);
+                return;
+            end
+            
+            if( var(1) == 'q' )
+                s = sprintf('%s%d [rad]',var,idx);
+                return;
+            end
+            
+        end
+        
+        function s = getTitle(data, var)
+            
+            s = [];
+            
+            if( var(1) == 'x' )
+                if(var(2) == 'd')
+                    s = 'Cartesian Velocity';
+                else
+                    s = 'Cartesian Pose';
+                end
+                return;
+            end
+            
+            if( var(1) == 'q' )
+                s = 'Joint Position';
+                return;
+            end
+            
+        end
+        
+    end
+   
 end
