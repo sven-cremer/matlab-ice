@@ -54,12 +54,13 @@ classdef classNeuroAdaptive
             o.nOut = nOutput;
             
             % Initialize random NN weights on the interval [a, b]
-            a = -0.1;
-            b =  0.1;
+            %rng(0)
+            a = -0.5;
+            b =  0.5;
             o.W = a + (b-a).*rand( o.nHid, o.nOut );
-            o.V = a + (b-a).*rand( o.nInp, o.nHid );
-            %o.W = zeros( o.nHid, o.nOut );     <- Could be unstable
-            %o.V = zeros( o.nInp, o.nHid );
+            %o.V = a + (b-a).*rand( o.nInp, o.nHid );
+            %o.W = zeros( o.nHid, o.nOut );     %<- Could be unstable?
+            o.V = zeros( o.nInp, o.nHid );
             
             
             % Controller parameters
@@ -140,6 +141,7 @@ classdef classNeuroAdaptive
             % Input to NN
             %y = [ e; ed; x; xd; x_m; xd_m; xdd_m; q; qd ];
             y = [ o.fl; fl_dot; diag(o.lambda); diag(lambda_dot); q; qd; e; ed; x_m; xd_m];
+            %y= [q; qd; e; ed; x_m; xd_m];
             
             % Nonlinear terms
             S = sigmoid(o.V'*y);            % Hidden layer output
@@ -180,14 +182,16 @@ classdef classNeuroAdaptive
                        
         end
         
-        function plotWeights(o)
+        function plotWeights(o, clim)
             % Visualizes NN weights
             
             xticks = o.nOut + o.nInp;
             %p = get(gcf,'position');
             %set(gcf,'position',p)
-
-            clim = [-1 1];
+            
+            if ~exist('clim','var')
+                clim = [-1 1];
+            end
             
             h1 = subplot(1,2,1);
             p = get(h1,'position');
