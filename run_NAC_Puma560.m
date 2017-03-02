@@ -2,10 +2,21 @@
 % Author: Sven Cremer
 clear all; close all; clc;
 
+saveData        = 1;
+plotData        = 1;
+saveFigures     = 1;
+animateRobot    = 0;
+plotNNweights   = 0;
+
+expName = '02';         % Data directory: data_pumaXX/
+
+%% Setup simulation
+
 startup_rvc     % Launch Robotics Toolbox
 
 mdl_puma560     % Load Puma 560 robot
 % mdl_p8        % Puma on an xy base
+
 nJoints = p560.n;
 nCart   = 6;
 %p560.gravity = [0;0;0];
@@ -18,7 +29,7 @@ ts = 0.0001;
 t = [t0:ts:tf]';
 N = length(t)
 
-% Neuroadpative controller
+%% Neuroadpative controller
 global na
 input  = nCart*10
 output = nCart
@@ -26,7 +37,7 @@ hidden = 18
 na = classNeuroAdaptive(input,hidden,output);
 na.PED_on = 1;
 
-% PD controller
+%% PD controller
 global Pgain Dgain 
 %Pgain = 1000.*ones(6,1);
 %Dgain = 100.*ones(6,1);
@@ -86,7 +97,7 @@ x_ref = [xC rC];
 
 xt = [t x_ref];
 
-%% Check
+% Check
 % T = p560.fkine(q);
 % plot(x_ref(:,1:3))
 % hold on;
@@ -114,37 +125,39 @@ toc
 T = p560.fkine(q_sim);
 x_sim = [transl(T), tr2rpy(T)];
 
-%% Cartesian error (min)
-M = size(x_sim,1);
+%% Cartesian error
 
-err_c = zeros(M,1);
-for i=1:M
-    dif = x_ref - repmat(x_sim(i,:),N,1);   % Difference
-    nor = sqrt(sum(abs(dif).^2,2));         % Norms
-    err_c(i) = min( nor );                  % Take the value closest to x_ref 
-end
+x_int = interp1(t, x_ref, t_sim );
+err_c = sqrt(sum(abs(x_sim - x_int).^2,2));
+
+err_c_tot = sum(err_c);
+fprintf('Total Cartesian error: %.1f\n',err_c_tot);
+
+% Minimum error (ignoring time)
+% M = size(x_sim,1);
+% err_c = zeros(M,1);
+% for i=1:M
+%     dif = x_ref - repmat(x_sim(i,:),N,1);   % Difference
+%     nor = sqrt(sum(abs(dif).^2,2));         % Norms
+%     err_c(i) = min( nor );                  % Take the value closest to x_ref 
+% end
 
 figure;
 plot(t_sim, err_c)
-total_error = sum(err_c)
-title(sprintf('Cartesian error norm vs time (total: %.1f)',total_error))
+title(sprintf('Cartesian Error Norm (total: %.1f)',err_c_tot))
 
 %% Joint error
 
 q_int = interp1(t, q, t_sim );
 err_j = sqrt(sum(abs(q_sim - q_int).^2,2));
 
-% err_j = zeros(M,1);
-% for i=1:M
-%     dif = q - repmat(q_sim(i,:),N,1);   % Difference
-%     nor = sqrt(sum(abs(dif).^2,2));         % Norms
-%     err_j(i) = min( nor );                  % Take the value closest to x_ref
-% end
+err_j_tot = sum(err_j);
+fprintf('Total joint error: %.1f\n',err_j_tot);
 
 figure;
 plot(t_sim, err_j)
 total_error = sum(err_j)
-title(sprintf('Joint error norm vs time (total: %.1f)',total_error))
+title(sprintf('Joint Error Norm (total: %.1f)',err_j_tot))
 
 %% Plot results
 figure;
@@ -156,69 +169,74 @@ for i=1:nJoints
     plot(t, q(:,i),':r')
     xlabel('Time [s]');
     ylabel(sprintf('Joint %d [rad]',i))
-    suptitle('JOINT POSITION')
+    if(i==1)
+        title('Joint Position')
+    end
 end
 
 figure;
-set(gcf,'position',[675   675   560   840]);
+set(gcf,'position',[175   675   560   840]);
 for i=1:nJoints
     subplot(nJoints,1,i)
     hold on; grid on;
     plot(t_sim, qd_sim(:,i),'-b')
     plot(t, qd(:,i),':r')
     xlabel('Time [s]');
-    ylabel(sprintf('Joint %d [rad]',i))
-    suptitle('JOINT VELOCITY')
+    ylabel(sprintf('Joint %d [rad/s]',i))
+    if(i==1)
+        title('Joint Velocity')
+    end
 end
 
-%% Cartesian pose
-%{
-figure;
-set(gcf,'position',[75   675   560   840]);
-ylab = {'x [m]','y [m]','z [m]','roll [rad]','pitch [rad]','yaw [rad]'};
-for i=1:6
-    subplot(6,1,i)
-    hold on; grid on;
-    
-    plot(t_sim, x_sim(:,i),'-b')
-    plot(t, x_ref(:,i),':r')
-    
-    xlabel('Time [s]');
-    ylabel(ylab{i})
-    suptitle('POSE')
-end
-%}
-
-%figure
-%plot(t,norm(q_sim-q))
-
-%%
 %plotVariable(data,'q_')
 %plotVariable(data,'qd_')
+
+% Cartesian pose
+plotVariable(data,'x_')
+plotVariable(data,'x_m_',0,':r')
+legend('x','x_m')
 
 plotVariable(data,'xd_')
 plotVariable(data,'tau_')
 
-%%
-plotVariable(data,'x_')
-plotVariable(data,'x_m_',0,':r')
-legend('x','x_m')
-suptitle('Cartesian Pose')
-
-%%
-figure; hold on;
+figure;
 grid on;
-%hist(t_sim,round(length(t_sim)/100))
 plot(1000.*diff(t_sim))
 ylabel('Time step [ms]'); xlabel('ODE iteration number');
-%plot(t_sim,'-r');
-%plot(t_int,'-b');
 
 %% Save figures and results
 
-return
-%% Animate robot
+fName = 'sim.mat';
 
+% Create folders
+dirData = ['data_puma',expName];
+dirFigs = [dirData,'/fig'];
+
+if ~exist(dirData, 'dir')
+    mkdir(dirData);
+end
+if ~exist(dirFigs, 'dir')
+    mkdir(dirFigs);
+end
+
+if(saveData)
+    save([dirData,'/',fName],'na','data','t','q','x_ref')
+end
+
+if(saveFigures)
+    h = findobj('type','figure');
+    n = length(h);   
+    for i=1:n
+        %saveas(figure(j),[dirFigs,'/eps/',fnames{j},int2str(i),'.eps'],'epsc')
+        saveas(figure(i),[dirFigs,'/',int2str(i),'.png'],'png')
+    end
+end
+
+%% Animate robot
+if(~animateRobot)
+    return
+end
+%%
 % Compute q(t) with a fixed time step
 simStep = 0.01;
 t_int = [ts:simStep:tf]';
@@ -226,6 +244,5 @@ q_int   = interp1(t_sim, q_sim, t_int);
 
 figure
 %p560.delay = ts;
-% q_sim(500:end,:)
 p560.plot(q_int,'trail',':r','delay',simStep)
 disp('Done!')

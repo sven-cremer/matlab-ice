@@ -163,18 +163,17 @@ classdef classData
                         end
                         subplot( h_ax(idx) )
                     end
-                    grid on; hold on;
+                    hold on; grid on; 
                     
                     plot(t, y(:,i),varargin{:})
                     %plot(data.t, data.tau_exp_(:,i),':r')
                     
                     xlabel('Time [s]');
                     ylabel(data.getLabel(str,i))
-                    %ylabel(sprintf('Joint %d [rad]',i))
                     if( i == 1 )
                         title(data.getTitle(str))
                     end
-                    %suptitle(strrep(str,'_','\_'))
+
                 end
             end
             
@@ -195,7 +194,7 @@ classdef classData
             
             s = [];
             
-            if( var(1) == 'x' )
+            if( var(1) == 'x'  || var(1) == 'f' )
                 l = {'x [m]','y [m]','z [m]','roll [rad]','pitch [rad]','yaw [rad]'};
                 s = l(idx);
                 return;
@@ -203,6 +202,11 @@ classdef classData
             
             if( var(1) == 'q' )
                 s = sprintf('%s%d [rad]',var,idx);
+                return;
+            end
+            
+            if( strcmp(var,'tau_') )
+                s = sprintf('\\tau_{%d} [rad]',idx);
                 return;
             end
             
@@ -217,13 +221,15 @@ classdef classData
                     s = 'Cartesian Velocity';
                 else
                     s = 'Cartesian Pose';
-                end
-                return;
-            end
-            
-            if( var(1) == 'q' )
-                s = 'Joint Position';
-                return;
+                end               
+            elseif( var(1) == 'q' )
+                if(var(2) == 'd')
+                    s = 'Joint Velocity';
+                else
+                    s = 'Joint Position';
+                end            
+            else
+                s = strrep(var,'_','\_');
             end
             
         end
