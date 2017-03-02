@@ -10,7 +10,7 @@ saveFigures     = 0;
 animateRobot    = 0;
 plotNNweights   = 0;
 
-NN_on           = 1;     % If 0, then PID is on
+NN_on           = 0;     % If 0, then PID is on
 GravityComp_on  = 1;
 
 %% Setup simulation
@@ -137,19 +137,21 @@ x_int = interp1(t, x_ref, t_sim );
 err_c = sqrt(sum(abs(x_sim - x_int).^2,2));
 
 err_c_tot = sum(err_c);
-fprintf('Total Cartesian error: %.1f\n',err_c_tot);
+fprintf('Total Cartesian error:\t\t%.1f\n',err_c_tot);
 
 % Minimum error (ignoring time)
-% M = size(x_sim,1);
-% err_c = zeros(M,1);
-% for i=1:M
-%     dif = x_ref - repmat(x_sim(i,:),N,1);   % Difference
-%     nor = sqrt(sum(abs(dif).^2,2));         % Norms
-%     err_c(i) = min( nor );                  % Take the value closest to x_ref 
-% end
+M = size(x_sim,1);
+err_cm = zeros(M,1);
+for i=1:M
+    dif = x_ref - repmat(x_sim(i,:),N,1);   % Difference
+    nor = sqrt(sum(abs(dif).^2,2));         % Norms
+    err_cm(i) = min( nor );                  % Take the value closest to x_ref 
+end
+fprintf('Total Cartesian error (MIN):\t%.1f\n',sum(err_cm));
 
-figure;
-plot(t_sim, err_c);
+figure; hold on;
+plot(t_sim, err_c,'-b');
+plot(t_sim, err_cm,'--r');
 grid on;
 title(sprintf('Cartesian Error Norm (total: %.1f)',err_c_tot))
 
@@ -158,12 +160,23 @@ q_int = interp1(t, q, t_sim );
 err_j = sqrt(sum(abs(q_sim - q_int).^2,2));
 
 err_j_tot = sum(err_j);
-fprintf('Total joint error: %.1f\n',err_j_tot);
+fprintf('Total joint error:\t\t%.0f\n',err_j_tot);
 
-figure;
-plot(t_sim, err_j);
+% Minimum error (ignoring time)
+M = size(q_sim,1);
+err_jm = zeros(M,1);
+for i=1:M
+    dif = q - repmat(q_sim(i,:),N,1);   % Difference
+    nor = sqrt(sum(abs(dif).^2,2));         % Norms
+    err_jm(i) = min( nor );                  % Take the value closest to x_ref 
+end
+fprintf('Total joint error (MIN):\t%.0f\n',sum(err_jm));
+
+figure; hold on;
+plot(t_sim, err_j,'-b');
+plot(t_sim, err_jm,'--r');
 grid on;
-title(sprintf('Joint Error Norm (total: %.1f)',err_j_tot))
+title(sprintf('Joint Error Norm (total: %.0f)',err_j_tot))
 
 %% Plot results
 figure;
