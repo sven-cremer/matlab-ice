@@ -7,7 +7,7 @@ expName = '01';         % Data directory: data_pumaXX/
 saveData        = 1;
 plotData        = 1;
 saveFigures     = 0;
-animateRobot    = 0;
+animateRobot    = 1;
 plotNNweights   = 0;
 
 NN_on           = 0;     % If 0, then PID is on
@@ -63,7 +63,7 @@ x0 = [0.4; -0.3; 0.60];
 r0 = [0,0,0];
 
 x1 = [0.2; 0.2; 0.60];
-r1 = [0,0,0];
+r1 = [12,-12,-6].*(pi/180);
 
 T0 = transl(x0)*rpy2tr(r0);
 T1 = transl(x1)*rpy2tr(r1);
@@ -149,7 +149,7 @@ for i=1:M
 end
 fprintf('Total Cartesian error (MIN):\t%.1f\n',sum(err_cm));
 
-figure; hold on;
+figure; hold on; grid on;
 plot(t_sim, err_c,'-b');
 plot(t_sim, err_cm,'--r');
 grid on;
@@ -172,7 +172,7 @@ for i=1:M
 end
 fprintf('Total joint error (MIN):\t%.0f\n',sum(err_jm));
 
-figure; hold on;
+figure; hold on; grid on;
 plot(t_sim, err_j,'-b');
 plot(t_sim, err_jm,'--r');
 grid on;
@@ -224,7 +224,6 @@ plot(1000.*diff(t_sim))
 ylabel('Time step [ms]'); xlabel('ODE iteration number');
 
 %% Save figures and results
-
 fName = 'sim.mat';
 
 % Create folders
@@ -263,5 +262,8 @@ q_int   = interp1(t_sim, q_sim, t_int);
 
 figure
 %p560.delay = ts;
-p560.plot(q_int,'trail',':r','delay',simStep)
+W = [-0.75, 0.75 -0.75 0.75 -0.2 1.0];
+p560.plot(q_int,'trail',':r','delay',simStep,'workspace',W)
+    % 'zoom',1.4,'floorlevel',-0.1
+saveas(gcf,[dirFigs,'/animation.png'],'png')
 disp('Done!')
