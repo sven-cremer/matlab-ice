@@ -22,10 +22,10 @@
 %------------- BEGIN CODE --------------
 clear all; close all; clc;
 
-saveData = true;
-plotData = true;
-saveFigs = false;
-plotNN   = false;
+saveData = 1;
+plotData = 1;
+saveFigs = 0;
+plotNN   = 1;
 
 expName = '02';
 
@@ -58,8 +58,9 @@ robot.length    = [1;1];
 
 %--------------------------
 % Neuroadpative controller
-input  = 18;
-output = 2;
+dim = 2;
+input  = dim*10;
+output = dim;
 hidden = 36;
 
 na = classNeuroAdaptive(input,hidden,output);
@@ -102,6 +103,8 @@ x0= [  q0(1)        ; %  1 q1
 
 N = round((tf-t0)/Ts);     % Data samples
 fprintf('Sampels: %d\n',N)
+
+%data = classData(N,output,2);
 
 data.t       = zeros(N,1);
 data.xC      = zeros(N,output);
