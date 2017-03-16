@@ -4,6 +4,7 @@ clear all; close all; clc;
 
 expName = '02';
 fName   = 'sim.mat';
+step    = 10;
 
 %------------- BEGIN CODE --------------
 
@@ -28,11 +29,9 @@ b = 0.75;
 xlabel('x');ylabel('y');zlabel('z');
 z = 0;
 
-
-
 M = 30;
 
-for i=2:1:N
+for i=2:step:N
     
     clf;
     hold on; grid on;
@@ -50,7 +49,8 @@ for i=2:1:N
     %zlim([z0 zf]);   % TODO use buffer instead + plot state function
 
     % Robot
-    drawRobot(data.q(i,:),data.xC(i,:),data.x_m(i,:),a1,i)
+    %drawRobot(data.q(i,:),data.xC(i,:),data.x_m(i,:),a1,i)
+    robot.drawRobot(data.q(i,:),data.xC(i,:),i)
     
     % Path taken
     for k=1:M
