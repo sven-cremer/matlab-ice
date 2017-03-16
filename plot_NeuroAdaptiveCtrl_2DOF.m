@@ -1,4 +1,6 @@
 function plot_NeuroAdaptiveCtrl_2DOF(figDir,dataDir)
+% Plots results from run_NeuorAdptiveCtrl_2DOF.m
+% Sven Cremer, 2017
 
 % Check if figures should be saved
 if ~exist('figDir','var') || isempty(figDir)

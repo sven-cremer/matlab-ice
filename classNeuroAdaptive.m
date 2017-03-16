@@ -1,5 +1,6 @@
 classdef classNeuroAdaptive
-    % Neuroadaptive controller class
+    % Neuroadaptive controller class   
+    % Sven Cremer, 2017
     
     properties
         % Public properties

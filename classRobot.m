@@ -1,5 +1,6 @@
 classdef classRobot
-    % Robot class
+    % Robot class - 2 DOF manipulator
+    % Sven Cremer, 2017
     
     properties
         % Public properties
