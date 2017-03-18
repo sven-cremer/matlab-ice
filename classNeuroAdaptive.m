@@ -9,6 +9,8 @@ classdef classNeuroAdaptive
         V;	% Inner weights, [nInp x nHid]
         W;  % Outer weights, [nHid x nOut]
         
+        b;  % Bias unit (0 or 1)
+        
         % Controller parameters
         Kv;
         lam;
@@ -57,21 +59,23 @@ classdef classNeuroAdaptive
             o.nHid = nHidden;
             o.nOut = nOutput;
             
+            o.b = 0;    % Bias unit
+            
             % Initialize random NN weights on the interval [a, b]
             %rng(0)
             a = -0.5;
             b =  0.5;
-            o.W = a + (b-a).*rand( o.nHid, o.nOut );
+            o.W = a + (b-a).*rand( o.nHid+o.b, o.nOut );
             %o.V = a + (b-a).*rand( o.nInp, o.nHid );
             %o.W = zeros( o.nHid, o.nOut );     %<- Could be unstable?
-            o.V = zeros( o.nInp, o.nHid );
+            o.V = zeros( o.nInp+o.b, o.nHid);
             
             
             % Controller parameters
             o.Kv     = 10  *eye(o.nOut) ;
             o.lam    = 20  *eye(o.nOut) ;
-            o.F      = 100 *eye(o.nHid) ;
-            o.G      = 100 *eye(o.nInp) ;
+            o.F      = 100 *eye(o.nHid+o.b) ;
+            o.G      = 100 *eye(o.nInp+o.b) ;
             
             o.kappa  = 0.001;
             o.Kz     = 0.05;
@@ -138,8 +142,8 @@ classdef classNeuroAdaptive
             
             % Robustifying term
             if(o.RB_on)
-                Z = [ o.W, zeros(o.nHid, o.nHid)
-                    zeros(o.nInp, o.nOut), o.V ];
+                Z = [ o.W, zeros(o.nHid+o.b, o.nHid)
+                    zeros(o.nInp+o.b, o.nOut), o.V ];
                 v = - o.Kz*(norm(Z) + o.Zb)*r;
             else
                 v = zeros(o.nOut,1);
@@ -149,6 +153,9 @@ classdef classNeuroAdaptive
             %y = [ e; ed; x; xd; x_m; xd_m; xdd_m; q; qd ];
             y = [ o.fl; fl_dot; diag(o.lambda); diag(lambda_dot); q; qd; e; ed; x_m; xd_m];
             %y= [q; qd; e; ed; x_m; xd_m];
+            if(o.b)
+                y = [y;1];
+            end
             
             % Nonlinear terms
             S = o.activation(o.V'*y);           % Hidden layer output
@@ -177,7 +184,8 @@ classdef classNeuroAdaptive
             W_dot = o.F*S*r' - o.kappa*o.F*norm(r)*o.W;
             
             % V update
-            V_dot = o.G*y*(o.activationPrime(o.V'*y)'*o.W*r)' - o.kappa*o.G*norm(r)*o.V;
+            dS = o.activationPrime(o.V'*y);
+            V_dot = o.G*y*(dS'*o.W*r)' - o.kappa*o.G*norm(r)*o.V;
             
             % V_dot = G*y*((diag(sigmoid(V'*y))*(eye(length(V'*y)) - diag(sigmoid(V'*y))))'*W*r)' ...
             %         - kappa*G*norm(r)*V;
@@ -199,7 +207,10 @@ classdef classNeuroAdaptive
                 otherwise
                     fprintf('Invalid activation function!\n');
                     g = [];
-            end            
+            end
+            if(o.b)
+                g = [g; 1];
+            end
         end
         
         function g = activationPrime(o, z)
@@ -207,8 +218,11 @@ classdef classNeuroAdaptive
             switch(o.actF)
                 
                 case o.actFncs.Sigmoid
-                    S = activation(o, z);
-                    g = diag(S)+diag(S)*diag(S);    % diag(S)*(I - diag(S)
+                    S = 1./(1+exp(-z));             %activation(o,z);
+                    g = diag(S)+diag(S)*diag(S);    % diag(S)*(I - diag(S))
+                    if(o.b)
+                        g = [g; zeros(1,o.nHid)];
+                    end
                     
                 otherwise
                     fprintf('Invalid activation function!\n');
