@@ -40,6 +40,9 @@ classdef classNeuroAdaptive
         actFncs;    % Structure with activation funcitons
         actF;       % Selected activation function
         
+        rbf_mu;     % RBF center for each node n [nInp x nNodes]
+        rbf_var;    % RBF variance = width^2
+        
     end
     
     properties (SetAccess = private)
@@ -59,7 +62,7 @@ classdef classNeuroAdaptive
             o.nHid = nHidden;
             o.nOut = nOutput;
             
-            o.b = 0;    % Bias unit
+            o.b = 1;    % Bias unit
             
             % Initialize random NN weights on the interval [a, b]
             %rng(0)
@@ -100,7 +103,28 @@ classdef classNeuroAdaptive
             
             % Activation function
             o.actFncs = struct('Sigmoid',1,'Tanh',2,'RBF',3); 
-            o.actF = o.actFncs.Sigmoid;            
+            o.actF = o.actFncs.RBF;
+            
+            % If the centers are -1 or 1, then there are 2^(nInp)=2^28 possible combinations.
+            % This would require too many hidden layer nodes.
+            %{
+            Mu = ones(nInp,1);  % First possibility            
+            for i=1:nInp
+                v = ones(nInp,1);
+                v(1:i) = -1;
+                P1 = perms(v);
+                P2 = unique(P1,'rows')';
+                Mu = [Mu, P2];
+            end
+            %}
+            % For sigma(z)
+            %   if z=y   is [nInp x 1] then rbf_mu is [nInp x nHid]
+            %   if z=V'y is [nHid x 1] then rbf_mu is [nHid x nHid]
+            o.rbf_mu = randi([0 1], o.nHid, o.nHid );   % Uniform discrete distribution (0 or 1)
+            o.rbf_mu(o.rbf_mu == 0) = -1;               % Make elements -1 or 1
+            %o.rbf_mu  = 0.1.*o.rbf_mu;
+            o.rbf_var = 1.0;
+            
         end
         
     end
@@ -204,6 +228,13 @@ classdef classNeuroAdaptive
                 case o.actFncs.Sigmoid
                     g = 1./(1+exp(-z));
                     
+                case o.actFncs.RBF
+                    g = zeros(o.nHid,1);
+                    for i=1:o.nHid
+                        x = z-o.rbf_mu(:,i);
+                        g(i,1)=exp( - (x'*x) / o.rbf_var);
+                    end
+                    
                 otherwise
                     fprintf('Invalid activation function!\n');
                     g = [];
@@ -220,14 +251,21 @@ classdef classNeuroAdaptive
                 case o.actFncs.Sigmoid
                     S = 1./(1+exp(-z));             %activation(o,z);
                     g = diag(S)+diag(S)*diag(S);    % diag(S)*(I - diag(S))
-                    if(o.b)
-                        g = [g; zeros(1,o.nHid)];
+
+                case o.actFncs.RBF
+                    g = zeros(o.nHid,o.nHid);
+                    for i=1:o.nHid
+                        x = z-o.rbf_mu(:,i);
+                        g(:,i) =-(2.*x./o.rbf_var).*exp( - (x'*x) / o.rbf_var); % TODO row or col?
                     end
                     
                 otherwise
                     fprintf('Invalid activation function!\n');
                     g = [];
-            end           
+            end
+            if(o.b)
+                g = [g; zeros(1,o.nHid)];
+            end
         end
         
     end
