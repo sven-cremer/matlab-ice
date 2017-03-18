@@ -1,4 +1,4 @@
-function plot_NeuroAdaptiveCtrl_2DOF(figDir,dataDir)
+function plot_NAC_2DOF(figDir,dataDir)
 % Plots results from run_NeuorAdptiveCtrl_2DOF.m
 % Sven Cremer, 2017
 

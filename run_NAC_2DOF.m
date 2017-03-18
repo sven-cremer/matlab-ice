@@ -25,7 +25,7 @@ clear all; close all; clc;
 saveData = 1;
 plotData = 1;
 saveFigs = 0;
-plotNN   = 1;
+plotNN   = 0;
 
 expName = '02';
 
@@ -310,9 +310,9 @@ end
 % Plot results
 if(plotData)
     if(saveFigs)
-        plot_NeuroAdaptiveCtrl_2DOF(dirFigs);
+        plot_NAC_2DOF(dirFigs);
     else
-        plot_NeuroAdaptiveCtrl_2DOF();
+        plot_NAC_2DOF();
     end
 end
 
