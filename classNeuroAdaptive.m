@@ -35,6 +35,9 @@ classdef classNeuroAdaptive
         PED_on;     % Use prescribed error dybnamics
         RB_on;      % Use robustifying term
         
+        actFncs;    % Structure with activation funcitons
+        actF;       % Selected activation function
+        
     end
     
     properties (SetAccess = private)
@@ -91,6 +94,9 @@ classdef classNeuroAdaptive
             o.PED_on = 1;
             o.RB_on  = 1;
             
+            % Activation function
+            o.actFncs = struct('Sigmoid',1,'Tanh',2,'RBF',3); 
+            o.actF = o.actFncs.Sigmoid;            
         end
         
     end
@@ -145,7 +151,7 @@ classdef classNeuroAdaptive
             %y= [q; qd; e; ed; x_m; xd_m];
             
             % Nonlinear terms
-            S = sigmoid(o.V'*y);            % Hidden layer output
+            S = o.activation(o.V'*y);           % Hidden layer output
             o.f_hat = o.W'*S;
             
             % Control force
@@ -171,8 +177,7 @@ classdef classNeuroAdaptive
             W_dot = o.F*S*r' - o.kappa*o.F*norm(r)*o.W;
             
             % V update
-            sigmoidPrime = diag(S)+diag(S)*diag(S);                 % diag(S)*(I - diag(S)
-            V_dot = o.G*y*(sigmoidPrime'*o.W*r)' - o.kappa*o.G*norm(r)*o.V;
+            V_dot = o.G*y*(o.activationPrime(o.V'*y)'*o.W*r)' - o.kappa*o.G*norm(r)*o.V;
             
             % V_dot = G*y*((diag(sigmoid(V'*y))*(eye(length(V'*y)) - diag(sigmoid(V'*y))))'*W*r)' ...
             %         - kappa*G*norm(r)*V;
@@ -182,6 +187,38 @@ classdef classNeuroAdaptive
             o.V = o.V + V_dot*dt;
                        
         end
+        
+        
+        function g = activation(o, z)
+            % Activation function           
+            switch(o.actF)
+                
+                case o.actFncs.Sigmoid
+                    g = 1./(1+exp(-z));
+                    
+                otherwise
+                    fprintf('Invalid activation function!\n');
+                    g = [];
+            end            
+        end
+        
+        function g = activationPrime(o, z)
+            % Derivative of activation function           
+            switch(o.actF)
+                
+                case o.actFncs.Sigmoid
+                    S = activation(o, z);
+                    g = diag(S)+diag(S)*diag(S);    % diag(S)*(I - diag(S)
+                    
+                otherwise
+                    fprintf('Invalid activation function!\n');
+                    g = [];
+            end           
+        end
+        
+    end
+    
+    methods     % for visualization
         
         function plotWeights(o, clim)
             % Visualizes NN weights
@@ -228,6 +265,4 @@ classdef classNeuroAdaptive
         end
              
     end
-    
-    
 end
