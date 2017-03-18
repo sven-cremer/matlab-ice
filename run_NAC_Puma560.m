@@ -35,16 +35,18 @@ N = length(t);
 global na
 input  = nCart*10;
 output = nCart;
-hidden = 18;
+hidden = 10;
 na = classNeuroAdaptive(input,hidden,output);
 na.PED_on = 1;
 na.RB_on  = 1;
 fprintf(' Inputs: %d\n Hidden: %d\n Outputs: %d\n',input,hidden,output)
 
-na.Kv  = diag([10,10,10, 0.01,0.01,0.01]);
-na.lam = diag([20,20,20, 0.1,0.1,0.1]);
-%na.Kd  = diag([20,20,20, 10,10,10]);
-%na.Dd  = diag([10,10,10, 5,5,5]);
+%na.Kv  = diag([2,2,2, 0.01,0.01,0.01]);
+%na.lam = diag([20,20,20, 0.1,0.1,0.1]);
+na.Kv  = diag([2,2,2, 1,1,1]);
+na.lam = diag([20,20,20, 10,10,10]);
+%na.Kd  = diag([10,10,10, 5,5,5]);
+%na.Dd  = diag([2,2,2, 1,1,1]);
 
 %% PD controller
 global Pgain Dgain 
@@ -240,9 +242,11 @@ plotVariable(data,'lambda_')
 plotVariable(data,'normW_')
 plotVariable(data,'normV_')
 
+figure
 plotWeights(na, [-1 1])
 colorbar;
-plotWeights(na, [-100 100])
+figure
+plotWeights(na, [-0.01 0.01])
 colorbar;
 
 figure;
