@@ -41,50 +41,47 @@ traj = classRefTraj(nJoints);
 
 dt  = 0.001;     % Main trajectory step time
 tf  = 10;        % Main trajectory execution time
-dtS = 0.5;       % Start position hold time
-dtF = 9.5;       % Final position hold time
+dtS = 2.0;       % Start position hold time
+dtF = 13;        % Final position hold time
 
 x0 = [0.4; -0.3; 0.60];
 r0 = [0,0,0];
 
 x1 = [0.2; 0.2; 0.60];
-r1 = [8,2,0].*(pi/180);
+r1 = [15,5,0].*(pi/180);
 
 % Use ctraj method
+% {
 traj = traj.straightCtraj(p560, x0, r0, x1, r1, dt, tf);
-traj = traj.holdEndpoints(0.5,9.5);
+traj = traj.holdEndpoints(dtS,dtF);
 
 traj.plotTraj();
 title('ctraj')
-
+% }
 % Use jtraj method
 %{
-[xref, q, qd] = traj.straightJtraj(p560, x0, r0, x1, r1, N);
-xt_ = [t xref];
-xt  = traj.holdEndpoints(xt_,0.5,0.5);
+traj = traj.straightJtraj(p560, x0, r0, x1, r1, dt, tf);
+traj = traj.holdEndpoints(dtS,dtF);
 
-traj.plotTraj(xt);
+traj.plotTraj();
 title('jtraj')
 %}
 %{
 % Circular reference trajectory
-radius=0.2;
+radius = 0.025;
 xs = [-0.3; 0.3; 0.4];
 
-[xref, q, qd] = traj.circular(p560, xs, radius, N);
-xt_ = [t xref];
-xt  = traj.holdEndpoints(xt_,0.5,0.5);
+traj = traj.circular(p560, xs, radius, dt, tf);
+traj = traj.holdEndpoints(dtS,dtF);
 
-traj.plotTraj(xt);
+traj.plotTraj();
 title('circle')
-
-%p560.plot(q,'trail',':r');
-%return
 %}
 
 N = traj.N;
 fprintf('Total simulation time: %.1f sec (%d steps for dt=%.4f)\n',traj.tf, traj.N, traj.dt)
 toc
+
 %% Neuroadpative controller
 global na
 input  = nCart*10;
@@ -300,7 +297,7 @@ q_int   = interp1(t_sim, q_sim, t_int);
 figure
 %p560.delay = ts;
 W = [-0.75, 0.75 -0.75 0.75 -0.2 1.0];
-p560.plot(q_int,'trail',':r','delay',simStep,'workspace',W)
+p560.plot(q_int,'trail','-m','delay',simStep,'workspace',W)
     % 'zoom',1.4,'floorlevel',-0.1
 saveas(gcf,[dirFigs,'/animation.png'],'png')
 fprintf('-> Done!\n\n')
