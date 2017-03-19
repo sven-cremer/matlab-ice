@@ -80,6 +80,7 @@ classdef classData
             data.fl_     = zeros(N,nOut);
             
             data.f_hat_  = zeros(N,nOut);
+            data.f_act_  = zeros(N,nOut);
             data.fc_     = zeros(N,nOut);
             data.tau_    = zeros(N,nOut);
             data.fc_exp  = zeros(N,nOut);

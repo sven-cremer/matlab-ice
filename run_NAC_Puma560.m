@@ -256,6 +256,10 @@ figure
 plotWeights(na, [-0.01 0.01])
 colorbar;
 
+figure
+imagesc(na.rbf_mu')
+title('RBF mu')
+
 figure;
 grid on;
 plot(1000.*diff(t_sim))

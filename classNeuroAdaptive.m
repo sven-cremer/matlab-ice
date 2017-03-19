@@ -106,23 +106,26 @@ classdef classNeuroAdaptive
             o.actFncs = struct('Sigmoid',1,'Tanh',2,'RBF',3); 
             o.actF = o.actFncs.RBF;
             
-            % If the centers are -1 or 1, then there are 2^(nInp)=2^28 possible combinations.
-            % This would require too many hidden layer nodes.
-            %{
-            Mu = ones(nInp,1);  % First possibility            
-            for i=1:nInp
-                v = ones(nInp,1);
-                v(1:i) = -1;
-                P1 = perms(v);
-                P2 = unique(P1,'rows')';
-                Mu = [Mu, P2];
-            end
-            %}
             % For sigma(z)
             %   if z=y   is [nInp x 1] then rbf_mu is [nInp x nHid]
             %   if z=V'y is [nHid x 1] then rbf_mu is [nHid x nHid]
-            o.rbf_mu = randi([0 1], o.nHid, o.nHid );   % Uniform discrete distribution (0 or 1)
-            o.rbf_mu(o.rbf_mu == 0) = -1;               % Make elements -1 or 1
+            % If the centers are -1 or 1, then there are 2^(nHid) possible
+            % combinations. This would require too many hidden layer nodes.
+            if(o.nHid <= 10)
+                tic
+                o.rbf_mu = ones(o.nHid,1);  % First possibility
+                for i=1:o.nHid
+                    v = ones(o.nHid,1);
+                    v(1:i) = -1;
+                    P1 = perms(v);
+                    P2 = unique(P1,'rows')';
+                    o.rbf_mu = [o.rbf_mu, P2];
+                end 
+                toc
+            else                
+                o.rbf_mu = randi([0 1], o.nHid, o.nHid );   % Uniform discrete distribution (0 or 1)
+                o.rbf_mu(o.rbf_mu == 0) = -1;               % Make elements -1 or 1
+            end
             %o.rbf_mu  = 0.1.*o.rbf_mu;
             o.rbf_var = 1.0;
             
@@ -194,9 +197,10 @@ classdef classNeuroAdaptive
                 Mx = robot.Mx;
                 Cx = robot.Cx;
                 Gx = robot.Gx;
-                f_act = Mx*( xdd_m + o.lam*ed ) + Cx*( xd_m + o.lam*e ) + Gx;
-                o.fc_exp = o.Kv*r + f_act - v;
+                o.f_act = Mx*( xdd_m + o.lam*ed ) + Cx*( xd_m + o.lam*e ) + Gx;
+                o.fc_exp = o.Kv*r + o.f_act - v;
             else
+                o.f_act  = zeros(o.nOut,1);
                 o.fc_exp = zeros(o.nOut,1);
             end
 
