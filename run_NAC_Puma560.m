@@ -25,8 +25,8 @@ nCart   = 6;
 
 % Simulation time
 t0 = 0;
-tf = 3;
-ts = 0.0001;
+tf = 10;
+ts = 0.001;
 
 t = [t0:ts:tf]';
 N = length(t);
@@ -89,7 +89,7 @@ title('jtraj')
 % {
 % Use ctraj method
 [xref, q, qd] = traj.straightCtraj(p560, x0, r0, x1, r1, N);
-[xt q, qd]    = traj.holdEndpoints(xref,q,qd,t,0.5,1.5);
+[xt q, qd]    = traj.holdEndpoints(xref,q,qd,t,0.5,9.5);
 
 traj.plotTraj(xt);
 title('ctraj')
