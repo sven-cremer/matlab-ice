@@ -27,7 +27,7 @@ classdef classRefTraj
     methods     % computational methods
            
         
-        function xref = circular(o, x0, r0, radius, N)
+        function [xref, q, qd] = circular(o, robot, x0, radius, N)
             % Circular reference trajectory
             % x0 [3x1]
             
@@ -40,7 +40,12 @@ classdef classRefTraj
             
             xC = transl(TC);
             rC = tr2rpy(TC);
-            xref = [xC rC];
+            %xref = [xC unwrap(rC)];
+            xref = [xC repmat(rC(1,:),[N,1])];
+            
+            q  = robot.ikine6s(TC, 'run');      % TODO move? takes a lot of time ...
+            qd = [zeros(1,robot.n); diff(q)];
+            
         end
         
         function [xref, q, qd] = straightJtraj(o, robot, x0, r0, x1, r1, N)
@@ -48,19 +53,21 @@ classdef classRefTraj
             T0 = transl(x0)*rpy2tr(r0);
             T1 = transl(x1)*rpy2tr(r1);
             
-            q0 = robot.ikine(T0);
-            q1 = robot.ikine(T1);
+            %q0 = robot.ikine(T0);
+            %q1 = robot.ikine(T1);         
+            q0 = robot.ikine6s(T0);
+            q1 = robot.ikine6s(T1);
             
             [q, qd] = jtraj(q0, q1, N ); 
             
             TC = robot.fkine(q);
           
             xC = transl(TC);
-            rC = tr2rpy(TC);
+            rC = unwrap( tr2rpy(TC) );
             xref = [xC rC];     % TODO check for discontinuity in rC
         end
         
-        function [xref, q0, q1] = straightCtraj(o, robot, x0, r0, x1, r1, N)
+        function [xref, q, qd] = straightCtraj(o, robot, x0, r0, x1, r1, N)
             
             T0 = transl(x0)*rpy2tr(r0);
             T1 = transl(x1)*rpy2tr(r1);
@@ -71,14 +78,14 @@ classdef classRefTraj
             rC = tr2rpy(TC);
             xref = [xC rC];
             
-            q0 = robot.ikine(T0);
-            q1 = robot.ikine(T1);
+            q  = robot.ikine6s(TC);
+            qd = [zeros(1,robot.n); diff(q)];
         end
         
-        function xt_new = holdEndpoints(o,xt,dtStart,dtStop)
+        function [xt_, q_, qd_] = holdEndpoints(o,xref,q,qd,t,dtStart,dtStop)    % TODO pass back q
             
-            t    = xt(:,1);
-            xref = xt(:,2:7);
+            %t    = xt(:,1);
+            %xref = xt(:,2:7);
             
             N = length(t);
             dt = median(diff(t));
@@ -86,16 +93,23 @@ classdef classRefTraj
             % Start
             n0 = round(dtStart/dt);
             x_0 = repmat(xref(1,:),[n0 1]);
+            q_0  = repmat(q(1,:),[n0 1]);
+            qd_0 = repmat(qd(1,:),[n0 1]);
             
             % Stop
             nf = round(dtStop/dt);
             x_f = repmat(xref(end,:),[nf 1]);
+            q_f  = repmat(q(end,:),[nf 1]);
+            qd_f = repmat(qd(end,:),[nf 1]);
             
             % Create trajectories
             xref_new = [x_0; xref; x_f];
             t_new = linspace(0, t(end)-t(1)+dtStart+dtStop, N+n0+nf)';
             
-            xt_new = [t_new xref_new];
+            xt_ = [t_new xref_new];
+            
+            q_ = [q_0; q; q_f];
+            qd_ = [qd_0; qd; qd_f];
             
         end
         

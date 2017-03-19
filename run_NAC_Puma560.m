@@ -35,10 +35,11 @@ N = length(t);
 global na
 input  = nCart*10;
 output = nCart;
-hidden = 10;
+hidden = 12;
 na = classNeuroAdaptive(input,hidden,output);
 na.PED_on = 1;
 na.RB_on  = 1;
+na.NN_on  = 1;
 fprintf(' Inputs: %d\n Hidden: %d\n Outputs: %d\n',input,hidden,output)
 
 %na.Kv  = diag([2,2,2, 0.01,0.01,0.01]);
@@ -56,7 +57,7 @@ Pgain = [100 500 5000 10 10 10];
 Dgain = [10 20 50 5 5 5];
 
 %% Reference trajectory
-global qt xt
+global xt %qt
 
 %Tz = p560.fkine(qz);     % L position
 %Tr = p560.fkine(qr);     % Vertical
@@ -67,53 +68,56 @@ global qt xt
 %T0 = p560.fkine(q0)
 %T1 = p560.fkine(q1)
 
+% {
 x0 = [0.4; -0.3; 0.60];
 r0 = [0,0,0];
 
 x1 = [0.2; 0.2; 0.60];
 r1 = [8,2,0].*(pi/180);
-%r1 = [12,-12,-6].*(pi/180);
-% p560.plot(p560.ikine(transl([0.2; 0.2; 0.60])*rpy2tr([10,2,3].*(pi/180))))
 
-T0 = transl(x0)*rpy2tr(r0);
-T1 = transl(x1)*rpy2tr(r1);
+traj = classRefTraj;
 
-q0 = p560.ikine(T0);
-q1 = p560.ikine(T1);
+% Use jtraj method
+%{
+[xref, q, qd] = traj.straightJtraj(p560, x0, r0, x1, r1, N);
+xt_ = [t xref];
+xt  = traj.holdEndpoints(xt_,0.5,0.5);
 
-% Hold, Move, Hold
-n1 = find(t > 0.5, 1, 'first');
-n2 = find(t > 2.5, 1, 'first');
+traj.plotTraj(xt);
+title('jtraj')
+%}
+% {
+% Use ctraj method
+[xref, q, qd] = traj.straightCtraj(p560, x0, r0, x1, r1, N);
+[xt q, qd]    = traj.holdEndpoints(xref,q,qd,t,0.5,1.5);
 
-% Joint trajectory
-[q_1, qd_1] = jtraj(q0, q0, n1    );  
-[q_2, qd_2] = jtraj(q0, q1, n2-n1 ); 
-[q_3, qd_3] = jtraj(q1, q1, N-n2  ); 
-q  = [q_1;q_2;q_3];
-qd = [qd_1;qd_2;qd_3];
-%[q, qd, qdd] = jtraj(q0, q1, N);
+traj.plotTraj(xt);
+title('ctraj')
+% }
+%{
+% Circular reference trajectory
+radius=0.2;
+xs = [-0.3; 0.3; 0.4];
 
-qt = [t q];
+[xref, q, qd] = traj.circular(p560, xs, radius, N);
+xt_ = [t xref];
+xt  = traj.holdEndpoints(xt_,0.5,0.5);
 
-% Cartesian trajectory
-T_1 = ctraj(T0, T0, n1    );  
-T_2 = ctraj(T0, T1, n2-n1 );
-T_3 = ctraj(T1, T1, N-n2  ); 
-TC = cat(3,T_1,T_2);
-TC = cat(3,TC, T_3);
-%TC = ctraj(T0, T1, N);
+traj.plotTraj(xt);
+title('circle')
 
-xC = transl(TC);
-rC = tr2rpy(TC);
-x_ref = [xC rC];
+%p560.plot(q,'trail',':r');
+%return
+%}
 
-xt = [t x_ref];
+q0 = q(1,:);
+q1 = q(end,:);
 
-% Check
-% T = p560.fkine(q);
-% plot(x_ref(:,1:3))
-% hold on;
-% plot(transl(T))
+t     = xt(:,1);
+x_ref = xt(:,2:7);
+N = length(t);
+tf = t(end);
+
 
 %% Storing data
 global data
