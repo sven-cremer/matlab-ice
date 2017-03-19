@@ -1,19 +1,20 @@
 function tau = torqueFunction(robot, t, q, qd)
 
-global xt;  % qt
+global traj;
 global Pgain Dgain na;
 global lastUpdate updateStep;
 global tau;
 global data;
 global NN_off GC_on
+global counter;
 
 % From main:
 % t = qt(:,1);      % 0 -> 10
 % q = qt(:,2:7);    % q(t)
 
 % Check time range
-if t > xt(end,1)
-    t = xt(end,1);
+if t > traj.tf
+    t = traj.tf;
 end
 
 delT = t-lastUpdate;
@@ -31,9 +32,9 @@ else
 end
 
 %% Desired position
-x_m_   = interp1(xt(:,1), xt(:,2:7), t)';
-xd_m_  = zeros(6,1);    % TODO compute
-xdd_m_ = zeros(6,1);
+x_m_   = interp1(traj.t, traj.x,   t)';
+xd_m_  = interp1(traj.t, traj.xd,  t)';
+xdd_m_ = interp1(traj.t, traj.xdd, t)';
 
 %% Get current robot state
 J = robot.jacobn(q);
@@ -157,8 +158,20 @@ if(false)
 end
 
 %% Display progress
-str = sprintf('\nTime completed: %.4f\n',t(end));
-fprintf(repmat('\b',1,numel(str)));
-fprintf(str);
+if( t < 0.5)
+    counter = -1;
+else
+    if(counter < 0)
+        fprintf(' Sim time:  %.4f',t);
+        counter = 1;
+    else
+        if( mod(counter,50) == 0 )
+            str = sprintf('%.4f',t);
+            fprintf(repmat('\b',1,numel(str)));
+            fprintf(str);
+        end
+        counter = counter + 1;
+    end
+end
 
 

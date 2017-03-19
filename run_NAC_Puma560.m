@@ -23,19 +23,73 @@ mdl_puma560     % Load Puma 560 robot
 nJoints = p560.n;
 nCart   = 6;
 
-% Simulation time
-t0 = 0;
-tf = 10;
-ts = 0.001;
+%% Reference trajectory
+tic
+fprintf('\nGenerating reference trajectory ...\n')
+%Tz = p560.fkine(qz);     % L position
+%Tr = p560.fkine(qr);     % Vertical
+%Ts = p560.fkine(qs);     % Horizontal
 
-t = [t0:ts:tf]';
-N = length(t);
+%q0 = [0 -20 -20 0 0 0] .* pi/180
+%q1 = [0 -23 -23 0 0 0] .* pi/180
+%T0 = p560.fkine(q0)
+%T1 = p560.fkine(q1)
 
+global traj
+
+traj = classRefTraj(nJoints);
+
+dt  = 0.001;     % Main trajectory step time
+tf  = 10;        % Main trajectory execution time
+dtS = 0.5;       % Start position hold time
+dtF = 9.5;       % Final position hold time
+
+x0 = [0.4; -0.3; 0.60];
+r0 = [0,0,0];
+
+x1 = [0.2; 0.2; 0.60];
+r1 = [8,2,0].*(pi/180);
+
+% Use ctraj method
+traj = traj.straightCtraj(p560, x0, r0, x1, r1, dt, tf);
+traj = traj.holdEndpoints(0.5,9.5);
+
+traj.plotTraj();
+title('ctraj')
+
+% Use jtraj method
+%{
+[xref, q, qd] = traj.straightJtraj(p560, x0, r0, x1, r1, N);
+xt_ = [t xref];
+xt  = traj.holdEndpoints(xt_,0.5,0.5);
+
+traj.plotTraj(xt);
+title('jtraj')
+%}
+%{
+% Circular reference trajectory
+radius=0.2;
+xs = [-0.3; 0.3; 0.4];
+
+[xref, q, qd] = traj.circular(p560, xs, radius, N);
+xt_ = [t xref];
+xt  = traj.holdEndpoints(xt_,0.5,0.5);
+
+traj.plotTraj(xt);
+title('circle')
+
+%p560.plot(q,'trail',':r');
+%return
+%}
+
+N = traj.N;
+fprintf('Total simulation time: %.1f sec (%d steps for dt=%.4f)\n',traj.tf, traj.N, traj.dt)
+toc
 %% Neuroadpative controller
 global na
 input  = nCart*10;
 output = nCart;
-hidden = 12;
+hidden = 10;
 na = classNeuroAdaptive(input,hidden,output);
 na.PED_on = 1;
 na.RB_on  = 1;
@@ -56,72 +110,9 @@ global Pgain Dgain
 Pgain = [100 500 5000 10 10 10];
 Dgain = [10 20 50 5 5 5];
 
-%% Reference trajectory
-global xt %qt
-
-%Tz = p560.fkine(qz);     % L position
-%Tr = p560.fkine(qr);     % Vertical
-%Ts = p560.fkine(qs);     % Horizontal
-
-%q0 = [0 -20 -20 0 0 0] .* pi/180
-%q1 = [0 -23 -23 0 0 0] .* pi/180
-%T0 = p560.fkine(q0)
-%T1 = p560.fkine(q1)
-
-% {
-x0 = [0.4; -0.3; 0.60];
-r0 = [0,0,0];
-
-x1 = [0.2; 0.2; 0.60];
-r1 = [8,2,0].*(pi/180);
-
-traj = classRefTraj;
-
-% Use jtraj method
-%{
-[xref, q, qd] = traj.straightJtraj(p560, x0, r0, x1, r1, N);
-xt_ = [t xref];
-xt  = traj.holdEndpoints(xt_,0.5,0.5);
-
-traj.plotTraj(xt);
-title('jtraj')
-%}
-% {
-% Use ctraj method
-[xref, q, qd] = traj.straightCtraj(p560, x0, r0, x1, r1, N);
-[xt q, qd]    = traj.holdEndpoints(xref,q,qd,t,0.5,9.5);
-
-traj.plotTraj(xt);
-title('ctraj')
-% }
-%{
-% Circular reference trajectory
-radius=0.2;
-xs = [-0.3; 0.3; 0.4];
-
-[xref, q, qd] = traj.circular(p560, xs, radius, N);
-xt_ = [t xref];
-xt  = traj.holdEndpoints(xt_,0.5,0.5);
-
-traj.plotTraj(xt);
-title('circle')
-
-%p560.plot(q,'trail',':r');
-%return
-%}
-
-q0 = q(1,:);
-q1 = q(end,:);
-
-t     = xt(:,1);
-x_ref = xt(:,2:7);
-N = length(t);
-tf = t(end);
-
-
 %% Storing data
 global data
-data = classData(round(N/3),output,nJoints); % TODO actually < N
+data = classData(round(0.5*N),output,nJoints); % TODO actually < N
 
 %% Start simulation
 global NN_off GC_on
@@ -131,13 +122,14 @@ global tau
 NN_off  = ~NN_on;
 GC_on   = GravityComp_on;
 lastUpdate = 0;
-updateStep = ts;
+updateStep = traj.dt;   % TODO larger?
 tau = zeros(1,nJoints);
 
 tic
 
-[t_sim, q_sim ,qd_sim] = p560.nofriction.fdyn(tf,@torqueFunction,q0,zeros(1,nJoints));
+[t_sim, q_sim ,qd_sim] = p560.nofriction.fdyn(traj.tf,@torqueFunction,traj.q0,zeros(1,nJoints));
 
+fprintf('\n')
 toc
 
 fprintf('Data points: %d\n',data.idx);
@@ -147,7 +139,7 @@ T = p560.fkine(q_sim);
 x_sim = [transl(T), tr2rpy(T)];
 
 %% Cartesian error
-x_int = interp1(t, x_ref, t_sim );
+x_int = interp1(traj.t, traj.x, t_sim );
 err_c = sqrt(sum(abs(x_sim - x_int).^2,2));
 
 err_c_tot = sum(err_c);
@@ -157,7 +149,7 @@ fprintf('Total Cartesian error:\t\t%.1f\n',err_c_tot);
 M = size(x_sim,1);
 err_cm = zeros(M,1);
 for i=1:M
-    dif = x_ref - repmat(x_sim(i,:),N,1);   % Difference
+    dif = traj.x - repmat(x_sim(i,:),N,1);   % Difference
     nor = sqrt(sum(abs(dif).^2,2));         % Norms
     err_cm(i) = min( nor );                  % Take the value closest to x_ref 
 end
@@ -170,7 +162,7 @@ grid on;
 title(sprintf('Cartesian Error Norm (total: %.1f)',err_c_tot))
 
 %% Joint error
-q_int = interp1(t, q, t_sim );
+q_int = interp1(traj.t, traj.q, t_sim );
 err_j = sqrt(sum(abs(q_sim - q_int).^2,2));
 
 err_j_tot = sum(err_j);
@@ -180,7 +172,7 @@ fprintf('Total joint error:\t\t%.0f\n',err_j_tot);
 M = size(q_sim,1);
 err_jm = zeros(M,1);
 for i=1:M
-    dif = q - repmat(q_sim(i,:),N,1);   % Difference
+    dif = traj.q - repmat(q_sim(i,:),N,1);   % Difference
     nor = sqrt(sum(abs(dif).^2,2));         % Norms
     err_jm(i) = min( nor );                  % Take the value closest to x_ref 
 end
@@ -199,7 +191,7 @@ for i=1:nJoints
     subplot(nJoints,1,i)
     hold on; grid on;
     plot(t_sim, q_sim(:,i),'-b')
-    plot(t, q(:,i),':r')
+    plot(traj.t, traj.q(:,i),':r')
     xlabel('Time [s]');
     ylabel(sprintf('Joint %d [rad]',i))
     if(i==1)
@@ -213,7 +205,7 @@ for i=1:nJoints
     subplot(nJoints,1,i)
     hold on; grid on;
     plot(t_sim, qd_sim(:,i),'-b')
-    plot(t, qd(:,i),':r')
+    plot(traj.t, traj.qd(:,i),':r')
     xlabel('Time [s]');
     ylabel(sprintf('Joint %d [rad/s]',i))
     if(i==1)
@@ -227,9 +219,12 @@ end
 % Cartesian pose
 plotVariable(data,'x_')
 plotVariable(data,'x_m_',0,':r')
-legend('x','x_m')
+legend('act','ref')
 
+% Cartesian velocity
 plotVariable(data,'xd_')
+plotVariable(data,'xd_m_',0,':r')
+legend('act','ref')
 
 plotVariable(data,'tau_')
 %plotVariable(data,'tau_exp',0,':r')
@@ -280,7 +275,7 @@ if ~exist(dirFigs, 'dir')
 end
 
 if(saveData)
-    save([dirData,'/',fName],'na','data','t','q','x_ref')
+    save([dirData,'/',fName],'traj','na','data')
 end
 
 if(saveFigures)
@@ -299,7 +294,7 @@ end
 %%
 % Compute q(t) with a fixed time step
 simStep = 0.01;
-t_int   = [ts:simStep:tf]';
+t_int   = [t_sim(1):simStep:t_sim(end)]';
 q_int   = interp1(t_sim, q_sim, t_int);
 
 figure
@@ -308,4 +303,4 @@ W = [-0.75, 0.75 -0.75 0.75 -0.2 1.0];
 p560.plot(q_int,'trail',':r','delay',simStep,'workspace',W)
     % 'zoom',1.4,'floorlevel',-0.1
 saveas(gcf,[dirFigs,'/animation.png'],'png')
-disp('Done!')
+fprintf('-> Done!\n\n')
