@@ -141,7 +141,9 @@ data.normV_  (k,:) = norm(na.V);
 
 data.fl_     (k,:) = na.fl';
 data.f_hat_  (k,:) = na.f_hat';
-data.fc_     (k,:) = fc';
+data.f_act_  (k,:) = na.f_act';
+data.fc_     (k,:) = na.fc';
+data.fc_exp  (k,:) = na.fc_exp';
 data.tau_    (k,:) = tau';
 data.lambda_ (k,:) = diag(na.lambda)';
 data.gamma_  (k,:) = diag(na.gamma)';

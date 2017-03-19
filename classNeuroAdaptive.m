@@ -22,6 +22,7 @@ classdef classNeuroAdaptive
         
         % Output
         f_hat;  % NN output
+        f_act;  % Actual value for f_hat
         fc;     % Control force
         fc_exp; % Expected control force
         

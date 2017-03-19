@@ -237,8 +237,11 @@ plotVariable(data,'tau_')
 
 plotVariable(data,'fl_')
 
-plotVariable(data,'fc_')
-plotVariable(data,'f_hat_',0,':r')
+plotVariable(data,'f_hat_')
+plotVariable(data,'f_act_',0,':r')
+plotVariable(data,'fc_',0,'-g')
+plotVariable(data,'fc_exp',0,':k')
+legend('f_hat', 'expected', 'fc', 'expected')
 
 plotVariable(data,'gamma_')
 plotVariable(data,'lambda_')

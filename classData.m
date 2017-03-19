@@ -22,6 +22,7 @@ classdef classData
         
         % Output
         f_hat_;  % NN output
+        f_act_;  % Actual value for f_hat_
         fc_;     % Control force
         tau_;    % Control torque
         fc_exp;  % Expected control force
