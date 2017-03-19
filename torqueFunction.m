@@ -58,24 +58,41 @@ else
     %--------------------------
     % Neuroadaptive controller
     
-    J = robot.jacobn(q);
-    
-    % Get current state
-    T = robot.fkine(q);
-    xC  = [transl(T); tr2rpy(T)'];
-    xdC = J * qd';
-    
     f_h    = zeros(6,1);
     
-%     delT = t-lastUpdate;
-%     if( delT < controllerStep )
-%         delT = 0;   % No update to weights
-%     else
-%         lastUpdate = t;
-%     end
+    tmp = [];
+    %{
+    % Dynamics - Joint Space
+    Mq = robot.inertia(q)';     % TODO transpose?
+    Cq = robot.coriolis(q,qd)';
+    Gq = robot.gravload(q)';
+    %Fq = robot.friction(q);
     
-    na = update(na, q', qd', xC, xdC, x_m_, xd_m_, xdd_m_, f_h, delT);
+    % Jacobians
+    Jdot  = robot.jacob_dot(q,qd);
+    Jinv  = pinv(J);
+    Jt    = J';
+    JtransInv   = pinv(Jt);
+    
+    % Dynamics - Cartesian space
+    tmp.Mx = JtransInv*Mq*Jinv;
+    tmp.Cx = JtransInv*( Cq - Mq*Jinv*Jdot )*Jinv;
+    tmp.Gx = JtransInv*Gq;  
+    %}
+    
+    na = update(na, q', qd', xC, xdC, x_m_, xd_m_, xdd_m_, f_h, delT, tmp);
     fc = na.fc;
+    
+    %{
+    fc_exp = na.fc_exp;
+    tau_exp = (J'*fc_exp)' + tau_g;
+    
+    tau_exp( tau_exp >  100 ) =  100;
+    tau_exp( tau_exp < -100 ) = -100;
+    
+    data.fc_exp     (data.idx,:) = fc_exp';
+    data.tau_exp    (data.idx,:) = tau_exp';
+    %}
     
 end
 
