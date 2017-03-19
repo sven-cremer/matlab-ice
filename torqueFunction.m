@@ -1,6 +1,6 @@
 function tau = torqueFunction(robot, t, q, qd)
 
-global qt xt;
+global xt;  % qt
 global Pgain Dgain na;
 global lastUpdate updateStep;
 global tau;
@@ -12,8 +12,8 @@ global NN_off GC_on
 % q = qt(:,2:7);    % q(t)
 
 % Check time range
-if t > qt(end,1)
-    t = qt(end,1);
+if t > xt(end,1)
+    t = xt(end,1);
 end
 
 delT = t-lastUpdate;
