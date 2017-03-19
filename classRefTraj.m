@@ -60,7 +60,7 @@ classdef classRefTraj
             xref = [xC rC];     % TODO check for discontinuity in rC
         end
         
-        function xref = straightCtraj(o, robot, x0, r0, x1, r1, N)
+        function [xref, q0, q1] = straightCtraj(o, robot, x0, r0, x1, r1, N)
             
             T0 = transl(x0)*rpy2tr(r0);
             T1 = transl(x1)*rpy2tr(r1);
@@ -70,6 +70,9 @@ classdef classRefTraj
             xC = transl(TC);
             rC = tr2rpy(TC);
             xref = [xC rC];
+            
+            q0 = robot.ikine(T0);
+            q1 = robot.ikine(T1);
         end
         
         function xt_new = holdEndpoints(o,xt,dtStart,dtStop)
@@ -81,37 +84,44 @@ classdef classRefTraj
             dt = median(diff(t));
             
             % Start
-            x0 = xref(1,1:3);
-            r0 = xref(1,4:6);
-            T0 = transl(x0)*rpy2tr(r0);
             n0 = round(dtStart/dt);
+            x_0 = repmat(xref(1,:),[n0 1]);
             
             % Stop
-            xf = xref(end,1:3);
-            rf = xref(end,4:6);
-            Tf = transl(xf)*rpy2tr(rf);
             nf = round(dtStop/dt);
+            x_f = repmat(xref(end,:),[nf 1]);
             
             % Create trajectories
-            T_0 = ctraj(T0, T0, n0  ); 
-            T_f = ctraj(Tf, Tf, nf  ); 
-            
-            x_0 = [transl(T_0) tr2rpy(T_0)];
-            x_f = [transl(T_f) tr2rpy(T_f)];
-            
             xref_new = [x_0; xref; x_f];
             t_new = linspace(0, t(end)-t(1)+dtStart+dtStop, N+n0+nf)';
             
             xt_new = [t_new xref_new];
             
         end
+        
     end
     
     methods     % for visualization
         
-        function plotTraj(o, robot)
+        function plotTraj(o, xt)
             % Visualize robot trajectory
             
+            p = [75   675   560   840];
+            
+            h = figure;
+            set(h, 'position', p);
+            
+            subplot(2,1,1)
+            plot(xt(:,1),xt(:,2:4))
+            xlabel('Time [s]'); ylabel('Position [m]');
+            legend('x','y','z');
+            grid on;
+            
+            subplot(2,1,2)
+            plot(xt(:,1),xt(:,5:7))
+            xlabel('Time [s]'); ylabel('Rotation [rad]');
+            legend('roll','pitch','yaw');
+            grid on;
             
         end
              
