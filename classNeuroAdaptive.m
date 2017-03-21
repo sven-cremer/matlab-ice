@@ -127,20 +127,21 @@ classdef classNeuroAdaptive
                 o.rbf_mu = randi([0 1], o.nHid, o.nHid );   % Uniform discrete distribution (0 or 1)
                 o.rbf_mu(o.rbf_mu == 0) = -1;               % Make elements -1 or 1
             end
-            
+            %}
+            %o.rbf_mu = rand( o.nHid, o.nHid ); % Unstable, needs many nodes ?
+            o.rbf_mu = randi([0 1], o.nHid, o.nHid ); % [0,+/-1], [-1,0,1]  perform similarly
+            o.rbf_mu(o.rbf_mu == 0) = -1; % Best result
+
             % Compute average distance between centers mu_j
             D = dist(o.rbf_mu); % The Euclidean distance between two vectors Mu(:,i) and Mu(:,j) is calculated as D(i,j)
             idx = tril(true(size(D)),-1);   % Extract lower triangular part
             d_avg = mean( D(idx) );         % Overall (?) average distance
             o.rbf_beta = 1/(2*(2*d_avg)^2); % sigma = 2*d_avg
+            fprintf('beta1 = %f\n', o.rbf_beta)
             o.rbf_beta = max(D(:))/sqrt(2*o.nHid);  % dmax/sqrt(2*M)
-            %} 
-            %a = -4; b = 4;
-            %o.rbf_mu = a + (b-a).*rand( o.nHid, o.nHid );
-            o.rbf_mu = randi([0 1], o.nHid, o.nHid );
-            %o.rbf_mu  = 2.*o.rbf_mu;
-            o.rbf_mu = rand(o.nHid, o.nHid );
-            o.rbf_beta = 0.5;
+            fprintf('beta2 = %f\n', o.rbf_beta)
+          
+            o.rbf_beta = 1.0;
         end
         
     end
@@ -249,9 +250,7 @@ classdef classNeuroAdaptive
                 case o.actFncs.RBF
                     g = zeros(o.nHid,1);
                     for i=1:o.nHid
-                        x = z-o.rbf_mu(:,i);
-                        %x = z-o.rbf_mu(i);
-                        g(i,1)=exp( - o.rbf_beta * (x'*x) ); % b = 1/(2*sigma^2)
+                        g(i,1) = exp( - o.rbf_beta * norm(z-o.rbf_mu(:,i))^2 ); % Note: ||x||^2 is the same as (x'*x)
                     end
                     
                 otherwise
@@ -275,8 +274,7 @@ classdef classNeuroAdaptive
                     g = zeros(o.nHid,o.nHid);
                     for i=1:o.nHid
                         x = z-o.rbf_mu(:,i);
-                        %x = z-o.rbf_mu(i);
-                        g(:,i) = (2*o.rbf_beta).*abs(x).*exp( - o.rbf_beta * (x'*x) ); % TODO row or col?
+                        g(:,i) = -2*o.rbf_beta*abs(x)*exp( - o.rbf_beta * norm(x)^2 ); % TODO row or col?
                     end
                     
                 otherwise
