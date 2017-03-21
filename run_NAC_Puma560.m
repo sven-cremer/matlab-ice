@@ -40,24 +40,24 @@ global traj
 traj = classRefTraj(nJoints);
 
 dt  = 0.001;     % Main trajectory step time
-tf  = 10;        % Main trajectory execution time
+tf  = 14;        % Main trajectory execution time
 dtS = 2.0;       % Start position hold time
-dtF = 13;        % Final position hold time
+dtF = 4.0;       % Final position hold time
 
 x0 = [0.4; -0.3; 0.60];
 r0 = [0,0,0];
 
 x1 = [0.2; 0.2; 0.60];
-r1 = [15,5,0].*(pi/180);
+r1 = [8,2,0].*(pi/180);
 
 % Use ctraj method
-% {
+%{
 traj = traj.straightCtraj(p560, x0, r0, x1, r1, dt, tf);
 traj = traj.holdEndpoints(dtS,dtF);
 
 traj.plotTraj();
 title('ctraj')
-% }
+%}
 % Use jtraj method
 %{
 traj = traj.straightJtraj(p560, x0, r0, x1, r1, dt, tf);
@@ -66,12 +66,14 @@ traj = traj.holdEndpoints(dtS,dtF);
 traj.plotTraj();
 title('jtraj')
 %}
-%{
+% {
 % Circular reference trajectory
-radius = 0.025;
+radius = 0.10;
 xs = [-0.3; 0.3; 0.4];
+rs = [0 -pi/15 0]; % Unstable at lowest point for >|pi/15|?
+%rs = [0 0 0];
 
-traj = traj.circular(p560, xs, radius, dt, tf);
+traj = traj.circular(p560, xs, rs, radius, dt, tf);
 traj = traj.holdEndpoints(dtS,dtF);
 
 traj.plotTraj();
@@ -81,17 +83,18 @@ title('circle')
 N = traj.N;
 fprintf('Total simulation time: %.1f sec (%d steps for dt=%.4f)\n',traj.tf, traj.N, traj.dt)
 toc
+%traj.animateTraj(p560); return
 
 %% Neuroadpative controller
 global na
-input  = nCart*10;
+input  = nCart*9;
 output = nCart;
 hidden = 10;
-na = classNeuroAdaptive(input,hidden,output);
+na = classNeuroAdaptive(input,hidden,output)
 na.PED_on = 1;
 na.RB_on  = 1;
 na.NN_on  = 1;
-fprintf(' Inputs: %d\n Hidden: %d\n Outputs: %d\n',input,hidden,output)
+%fprintf(' Inputs: %d\n Hidden: %d\n Outputs: %d\n',input,hidden,output)
 
 %na.Kv  = diag([2,2,2, 0.01,0.01,0.01]);
 %na.lam = diag([20,20,20, 0.1,0.1,0.1]);
@@ -119,7 +122,7 @@ global tau
 NN_off  = ~NN_on;
 GC_on   = GravityComp_on;
 lastUpdate = 0;
-updateStep = traj.dt;   % TODO larger?
+updateStep = 0.0; %traj.dt;   % TODO larger?
 tau = zeros(1,nJoints);
 
 tic

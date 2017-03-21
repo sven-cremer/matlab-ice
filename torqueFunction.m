@@ -17,6 +17,7 @@ if t > traj.tf
     t = traj.tf;
 end
 
+% Note: fdyn uses ode45 which has a variable step size
 delT = t-lastUpdate;
 if( delT < updateStep )
     return;   % No update for tau
