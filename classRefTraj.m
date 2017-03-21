@@ -21,6 +21,8 @@ classdef classRefTraj
         xf;     % Final pose
         q0;     % Start joint position
         qf;     % Final joint position
+        
+        IKopt;  % Inverse kinematics options
             
     end
     
@@ -30,6 +32,7 @@ classdef classRefTraj
             
             o = reset(o);
             o.nJ = numJoints;
+            o.IKopt = 'run'; % Arm right, elbow up, wrist not flipped
             
         end
         
@@ -109,7 +112,7 @@ classdef classRefTraj
             o.x   = [xC rC];
             
             % Joint Vector
-            o.q  = robot.ikine6s(TC, 'run');  % TODO move? takes a lot of time ...
+            o.q  = robot.ikine6s(TC, o.IKopt);  % TODO move? takes a lot of time ...
             
             o = updateVariables(o);
             
@@ -130,8 +133,8 @@ classdef classRefTraj
             
             %q0 = robot.ikine(T0);
             %q1 = robot.ikine(T1);         
-            q0 = robot.ikine6s(T0);
-            q1 = robot.ikine6s(T1);
+            q0 = robot.ikine6s(T0, o.IKopt);
+            q1 = robot.ikine6s(T1, o.IKopt);
             
             [o.q, o.qd] = jtraj(q0, q1, o.N ); 
             
@@ -163,7 +166,7 @@ classdef classRefTraj
             o.x = [xC rC];
 
             % Joint vector
-            o.q = robot.ikine6s(TC);
+            o.q = robot.ikine6s(TC,o.IKopt);
 
             o = updateVariables(o);
         end
