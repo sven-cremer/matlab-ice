@@ -42,7 +42,7 @@ classdef classNeuroAdaptive
         actF;       % Selected activation function
         
         rbf_mu;     % RBF center for each node n [nInp x nNodes]
-        rbf_var;    % RBF variance = width^2
+        rbf_beta;   % RBF beta = 1/(2*sigma^2)
         
     end
     
@@ -111,24 +111,36 @@ classdef classNeuroAdaptive
             %   if z=V'y is [nHid x 1] then rbf_mu is [nHid x nHid]
             % If the centers are -1 or 1, then there are 2^(nHid) possible
             % combinations. This would require too many hidden layer nodes.
+            %{
             if(o.nHid <= 10)
-                tic
-                o.rbf_mu = ones(o.nHid,1);  % First possibility
+                Mu = ones(o.nHid,1);  % First possibility
                 for i=1:o.nHid
                     v = ones(o.nHid,1);
                     v(1:i) = -1;
-                    P1 = perms(v);
-                    P2 = unique(P1,'rows')';
-                    o.rbf_mu = [o.rbf_mu, P2];
-                end 
-                toc
+                    P = uperm(v)';
+                    Mu = [Mu, P];
+                end
+                N = size(Mu,2);
+                idx = randperm(N,o.nHid);   % Select nHid Mu(:,i) randomly
+                o.rbf_mu = Mu(:,idx);
             else                
                 o.rbf_mu = randi([0 1], o.nHid, o.nHid );   % Uniform discrete distribution (0 or 1)
                 o.rbf_mu(o.rbf_mu == 0) = -1;               % Make elements -1 or 1
             end
-            %o.rbf_mu  = 0.1.*o.rbf_mu;
-            o.rbf_var = 1.0;
             
+            % Compute average distance between centers mu_j
+            D = dist(o.rbf_mu); % The Euclidean distance between two vectors Mu(:,i) and Mu(:,j) is calculated as D(i,j)
+            idx = tril(true(size(D)),-1);   % Extract lower triangular part
+            d_avg = mean( D(idx) );         % Overall (?) average distance
+            o.rbf_beta = 1/(2*(2*d_avg)^2); % sigma = 2*d_avg
+            o.rbf_beta = max(D(:))/sqrt(2*o.nHid);  % dmax/sqrt(2*M)
+            %} 
+            %a = -4; b = 4;
+            %o.rbf_mu = a + (b-a).*rand( o.nHid, o.nHid );
+            o.rbf_mu = randi([0 1], o.nHid, o.nHid );
+            %o.rbf_mu  = 2.*o.rbf_mu;
+            o.rbf_mu = rand(o.nHid, o.nHid );
+            o.rbf_beta = 0.5;
         end
         
     end
@@ -179,7 +191,8 @@ classdef classNeuroAdaptive
             
             % Input to NN
             %y = [ e; ed; x; xd; x_m; xd_m; xdd_m; q; qd ];
-            y = [ o.fl; fl_dot; diag(o.lambda); diag(lambda_dot); q; qd; e; ed; x_m; xd_m];
+            %y = [ o.fl; fl_dot; diag(o.lambda); diag(lambda_dot); q; qd; e; ed; x_m; xd_m];
+            y = [ diag(o.lambda); diag(lambda_dot); q; qd; e; ed; x_m; xd_m; xdd_m];
             %y= [q; qd; e; ed; x_m; xd_m];
             if(o.b)
                 y = [y;1];
@@ -237,7 +250,8 @@ classdef classNeuroAdaptive
                     g = zeros(o.nHid,1);
                     for i=1:o.nHid
                         x = z-o.rbf_mu(:,i);
-                        g(i,1)=exp( - (x'*x) / o.rbf_var);
+                        %x = z-o.rbf_mu(i);
+                        g(i,1)=exp( - o.rbf_beta * (x'*x) ); % b = 1/(2*sigma^2)
                     end
                     
                 otherwise
@@ -261,7 +275,8 @@ classdef classNeuroAdaptive
                     g = zeros(o.nHid,o.nHid);
                     for i=1:o.nHid
                         x = z-o.rbf_mu(:,i);
-                        g(:,i) =-(2.*x./o.rbf_var).*exp( - (x'*x) / o.rbf_var); % TODO row or col?
+                        %x = z-o.rbf_mu(i);
+                        g(:,i) = (2*o.rbf_beta).*abs(x).*exp( - o.rbf_beta * (x'*x) ); % TODO row or col?
                     end
                     
                 otherwise
