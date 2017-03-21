@@ -79,7 +79,7 @@ classdef classRefTraj
             fprintf('Max velocities: %.3f[m/s], %.3f[rad/s]\n',max(m(1:3)), max(m(4:6)));
         end
             
-        function o = circular(o, robot, x0, radius, dt, tf)
+        function o = circular(o, robot, x0, r0, radius, dt, tf)
             % Circular reference trajectory in yz plane
             % x0 [3x1] starting position
             
@@ -90,17 +90,22 @@ classdef classRefTraj
             o.t  = 0:o.dt:tf;
             o.N  = length(o.t);
             
+            % Circle
+            c = x0(2:3); % Center (in yz plane)
+            p = circle(c, radius,'n',o.N);
+            
             % Pose vector
             o.x0 = transl(x0);          
             TC = zeros(4,4,o.N);
             for i=1:o.N
-                TC(:,:,i)= o.x0*trotz(-pi/2)*troty(2*pi*i/o.N)*transl(0, 0, radius);
+                %TC(:,:,i)= o.x0*trotz(-pi/2)*troty(2*pi*i/o.N)*transl(0, 0, radius);
+                TC(:,:,i) = transl(x0(1), p(1,i), p(2,i))*rpy2tr(r0);
             end
             
             xC = transl(TC);
             rC = tr2rpy(TC);
             %rC = unwrap(tr2rpy(TC));
-            rC = repmat(rC(1,:),[o.N,1]);         
+            %rC = repmat(rC(1,:),[o.N,1]);
             o.x   = [xC rC];
             
             % Joint Vector
@@ -226,6 +231,22 @@ classdef classRefTraj
             xlabel('Time [s]'); ylabel('Rotation [rad]');
             legend('roll','pitch','yaw');
             grid on;
+            
+        end
+        
+        function animateTraj(o,robot)
+            
+            % Compute q(t) with a fixed time step
+            simStep = 0.01;
+            t_int   = (o.t(1):simStep:o.t(end))';
+            q_int   = interp1(o.t, o.q, t_int);
+            
+            figure
+            w = 0.75;
+            W = [-w, w -w w -0.2 1.0];
+            robot.plot(q_int,'trail','-m','delay',0.1*simStep, ...
+                       'workspace',W,'scale',0.7);
+            fprintf('Done!\n');
             
         end
              
