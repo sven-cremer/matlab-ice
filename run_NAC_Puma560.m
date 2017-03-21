@@ -291,13 +291,24 @@ end
 %%
 % Compute q(t) with a fixed time step
 simStep = 0.01;
-t_int   = [t_sim(1):simStep:t_sim(end)]';
+t_int   = (t_sim(1):simStep:t_sim(end))';
 q_int   = interp1(t_sim, q_sim, t_int);
 
+w = 0.75;
+W = [-w, w -w w -0.2 1.0];
+
+% Setup plot
 figure
-%p560.delay = ts;
-W = [-0.75, 0.75 -0.75 0.75 -0.2 1.0];
-p560.plot(q_int,'trail','-m','delay',simStep,'workspace',W)
-    % 'zoom',1.4,'floorlevel',-0.1
+p560.plot(q_int(1,:),'trail','-m','workspace',W,'scale',0.7) % 'zoom',1.4,'floorlevel',-0.1
+
+% Draw reference trajectory
+hold on;
+plot3(traj.x(:,1),traj.x(:,2),traj.x(:,3),':k')
+
+% Animate robot
+fprintf('Running animation ... ')
+p560.plot(q_int,'delay',0.1*simStep)
+fprintf('done!\n')
+
 saveas(gcf,[dirFigs,'/animation.png'],'png')
-fprintf('-> Done!\n\n')
+
