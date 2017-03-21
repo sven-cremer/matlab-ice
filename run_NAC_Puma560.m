@@ -11,7 +11,7 @@ animateRobot    = 1;
 plotNNweights   = 0;
 
 NN_on           = 1;     % If 0, then PID is on
-GravityComp_on  = 1;
+GravityComp_on  = 1;     % TODO turn off
 
 %% Setup simulation
 
@@ -40,14 +40,14 @@ global traj
 traj = classRefTraj(nJoints);
 
 dt  = 0.001;     % Main trajectory step time
-tf  = 14;        % Main trajectory execution time
+tf  = 10;        % Main trajectory execution time
 dtS = 2.0;       % Start position hold time
 dtF = 4.0;       % Final position hold time
 
-x0 = [0.4; -0.3; 0.60];
-r0 = [0,0,0];
-
+x0 = [0.4; 0.0; 0.60];
 x1 = [0.2; 0.2; 0.60];
+xs = [-0.3; 0.3; 0.4];
+r0 = [0,0,0];
 r1 = [8,2,0].*(pi/180);
 
 % Use ctraj method
@@ -58,6 +58,16 @@ traj = traj.holdEndpoints(dtS,dtF);
 traj.plotTraj();
 title('ctraj')
 %}
+% Hold position
+% {
+GravityComp_on = 0;
+%traj.IKopt ='rdn';  % Elbow down
+traj = traj.straightCtraj(p560, xs, r0, xs, r0, dt, 0.1);
+traj = traj.holdEndpoints(0.9,24);
+
+traj.plotTraj();
+title('ctraj')
+% }
 % Use jtraj method
 %{
 traj = traj.straightJtraj(p560, x0, r0, x1, r1, dt, tf);
@@ -66,12 +76,11 @@ traj = traj.holdEndpoints(dtS,dtF);
 traj.plotTraj();
 title('jtraj')
 %}
-% {
+%{
 % Circular reference trajectory
 radius = 0.10;
-xs = [-0.3; 0.3; 0.4];
-rs = [0 -pi/15 0]; % Unstable at lowest point for >|pi/15|?
-%rs = [0 0 0];
+%rs = [0 -pi/15 0]; % Unstable at lowest point for >|pi/15|?
+rs = [0 0 0];
 
 traj = traj.circular(p560, xs, rs, radius, dt, tf);
 traj = traj.holdEndpoints(dtS,dtF);

@@ -29,7 +29,8 @@ lastUpdate = t;
 if(GC_on)
     tau_g = robot.gravload(q);
 else
-    tau_g = zeros(1,6);
+    %tau_g = zeros(1,6);
+    tau_g = robot.gravload(q).*exp(-0.2*t^2);   % Zero at ~5sec
 end
 
 %% Desired position
