@@ -50,12 +50,16 @@ x0 = [0.4; 0.0; 0.60];
 x1 = [0.2; 0.2; 0.60];
 xs = [-0.3; 0.3; 0.4];
 r0 = [0,0,0];
-r1 = [8,2,0].*(pi/180);
+%r1 = [15,5,0].*(pi/180);
+r1 = [0,0.95*pi/2,0];
 
 % Use ctraj method
 %{
-traj = traj.straightCtraj(p560, x0, r0, x1, r1, dt, tf);
-traj = traj.holdEndpoints(dtS,dtF);
+%traj = traj.straightCtraj(p560, x0, r0, x1, r0, dt, 6);    % Fixed r, stable
+%traj = traj.straightCtraj(p560, x1, r0, x1, r1, dt, tf);   % Fixed x, stable -> unstable
+%traj = traj.straightCtraj(p560, x1, r1, x1, r0, dt, 7);    % Fixed x, unstable -> stable
+traj = traj.straightCtraj(p560, x1, [0,0.5*pi/2,0], x1, [0,0.55*pi/2,0], dt, 5);
+traj = traj.holdEndpoints(dtS,dtF+6);
 
 traj.plotTraj();
 title('ctraj')
@@ -82,16 +86,18 @@ title('jtraj')
 %{
 % Circular reference trajectory
 radius = 0.10;
-%rs = [0 -pi/15 0]; % Unstable at lowest point for >|pi/15|?
-rs = [0 0 0];
+%rs = [0 -pi/2 0];    % Unstable
+%rs = [0 -pi*0.19 0]; % Threshold
+ rs = [0 -pi*0.3 0];
+%rs = [0 0 0];
 
-traj = traj.circular(p560, xs, rs, radius, dt, tf);
-traj = traj.holdEndpoints(dtS,dtF);
+traj = traj.circular(p560, xs, rs, radius, dt, tf+4); % 14
+%traj = traj.holdEndpoints(dtS,dtF);    % TODO remove discontinuity
 
 traj.plotTraj();
 title('circle')
 %}
-
+drawnow
 N = traj.N;
 fprintf('Total simulation time: %.1f sec (%d steps for dt=%.4f)\n',traj.tf, traj.N, traj.dt)
 toc

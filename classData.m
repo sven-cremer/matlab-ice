@@ -176,6 +176,8 @@ classdef classData
                     plot(t, y(:,i),varargin{:})
                     %plot(data.t, data.tau_exp_(:,i),':r')
                     
+                    %xlim([0 0.5]); ylim([-pi pi]);
+                    
                     xlabel('Time [s]');
                     ylabel(data.getLabel(str,i))
                     if( i == 1 )
