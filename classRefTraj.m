@@ -6,6 +6,7 @@ classdef classRefTraj
         % Public properties
         
         nJ;     % Number of robot joints
+        nC;     % Cartesian dimension
         N;      % Number of trajectory points
         dt;     % Time step
         t;      % Time vector
@@ -23,15 +24,24 @@ classdef classRefTraj
         qf;     % Final joint position
         
         IKopt;  % Inverse kinematics options
+        Q_on;   % Use quaternion instead of Euler angles
             
     end
     
     methods     % constructor method
         
-        function o = classRefTraj(numJoints)
+        function o = classRefTraj(numJoints, numCart)
             
             o = reset(o);
             o.nJ = numJoints;
+            o.nC = numCart;
+            
+            if(numCart == 7)
+                o.Q_on=1;
+            else
+                o.Q_on=0;
+            end
+            
             o.IKopt = 'run'; % Arm right, elbow up, wrist not flipped
             
         end
@@ -71,15 +81,15 @@ classdef classRefTraj
             o.tf = o.t(end);
             
             % Derivatives
-            o.xd  = [zeros(1,6); diff(o.x) ]./o.dt;
-            o.xdd = [zeros(1,6); diff(o.xd)]./o.dt;
+            o.xd  = [zeros(1,o.nC); diff(o.x) ]./o.dt;
+            o.xdd = [zeros(1,o.nC); diff(o.xd)]./o.dt;
             
             if(isempty(o.qd))
                 o.qd  = [zeros(1,o.nJ); diff(o.q)]./o.dt;
             end
             
             m = max(o.xd);
-            fprintf('Max velocities: %.3f[m/s], %.3f[rad/s]\n',max(m(1:3)), max(m(4:6)));
+            fprintf('Max velocities: %.3f[m/s], %.3f[rad/s]\n',max(m(1:3)), max(m(4:end)));
         end
             
         function o = circular(o, robot, x0, r0, radius, dt, tf)
@@ -162,7 +172,11 @@ classdef classRefTraj
             
             TC = ctraj(T0, T1, o.N );         
             xC = transl(TC);
-            rC = tr2rpy(TC);
+            if(o.Q_on)
+                rC = tform2quat(TC);
+            else
+                rC = tr2rpy(TC);
+            end
             o.x = [xC rC];
 
             % Joint vector
@@ -179,7 +193,7 @@ classdef classRefTraj
             end
             
             qz = zeros(1,o.nJ);
-            xz = zeros(1,6);
+            xz = zeros(1,o.nC);
             
             % Data points
             n0 = round(dtStart/o.dt);
@@ -230,11 +244,34 @@ classdef classRefTraj
             grid on;
             
             subplot(2,1,2)
-            plot(o.t,o.x(:,4:6))
+            plot(o.t,o.x(:,4:end))
             xlabel('Time [s]'); ylabel('Rotation [rad]');
-            legend('roll','pitch','yaw');
+            if(o.Q_on)
+                legend('qw','qx','qy','qz');
+            else
+                legend('roll','pitch','yaw');
+            end
             grid on;
             
+        end
+        
+        function animateQuat(o)
+            
+            if(o.Q_on)
+                T = quat2tform(o.x(:,4:7));
+            else
+                T = rpy2tr(o.x(:,4:6));
+            end
+            qt = Quaternion(T);
+            figure;
+            %q1 = Quaternion(TC(:,:,1));
+            %e = zeros(o.N,4);
+            for i=1:100:o.N
+                plot(qt(i))
+                title(num2str(i))
+                %e(i,:) = q(i).double - q1.double;
+            end
+            %plot(e)
         end
         
         function animateTraj(o,robot)
