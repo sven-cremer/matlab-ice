@@ -12,7 +12,8 @@ plotNNweights   = 0;
 
 NN_on           = 1;    % If 0, then PID is on
 GravityComp_on  = 1;    % TODO turn off
-Quat_on         = 1;    % Use Quaterion instead of Euler angles 
+Quat_on         = 0;    % Use Quaterion instead of Euler angles
+                        % note: qdiff = q1*conj(q2) so e = q1-q2 doesn't make sense?                   
 
 %% Setup simulation
 
