@@ -10,8 +10,9 @@ saveFigures     = 0;
 animateRobot    = 1;
 plotNNweights   = 0;
 
-NN_on           = 1;     % If 0, then PID is on
-GravityComp_on  = 1;     % TODO turn off
+NN_on           = 1;    % If 0, then PID is on
+GravityComp_on  = 1;    % TODO turn off
+Quat_on         = 1;    % Use Quaterion instead of Euler angles 
 
 %% Setup simulation
 
@@ -21,7 +22,7 @@ mdl_puma560     % Load Puma 560 robot
 % mdl_p8        % Puma on an xy base
 
 nJoints = p560.n;
-nCart   = 6;
+nCart   = 6+Quat_on;
 
 %% Reference trajectory
 tic
@@ -37,7 +38,7 @@ fprintf('\nGenerating reference trajectory ...\n')
 
 global traj
 
-traj = classRefTraj(nJoints);
+traj = classRefTraj(nJoints,nCart);
 
 dt  = 0.001;     % Main trajectory step time
 tf  = 10;        % Main trajectory execution time
@@ -57,6 +58,7 @@ traj = traj.holdEndpoints(dtS,dtF);
 
 traj.plotTraj();
 title('ctraj')
+%traj.animateQuat();
 %}
 % Hold position
 % {
@@ -96,10 +98,9 @@ toc
 
 %% Neuroadpative controller
 global na
-input  = nCart*9;
 output = nCart;
 hidden = 10;
-na = classNeuroAdaptive(input,hidden,output)
+na = classNeuroAdaptive(nJoints,nCart,hidden)
 na.PED_on = 1;
 na.RB_on  = 1;
 na.NN_on  = 1;
@@ -111,6 +112,11 @@ na.Kv  = diag([2,2,2, 1,1,1]);
 na.lam = diag([20,20,20, 10,10,10]);
 %na.Kd  = diag([10,10,10, 5,5,5]);
 %na.Dd  = diag([2,2,2, 1,1,1]);
+
+if(Quat_on)
+    na.Kv  = diag([2,2,2, 0.01,0.01,0.01,0.01]);
+    na.lam = diag([20,20,20, 0.1,0.1,0.1,0.1]);
+end
 
 %% PD controller
 global Pgain Dgain 
@@ -124,12 +130,13 @@ global data
 data = classData(round(0.5*N),output,nJoints); % TODO actually < N
 
 %% Start simulation
-global NN_off GC_on
+global NN_off GC_on Q_on
 global lastUpdate updateStep
 global tau
 
 NN_off  = ~NN_on;
 GC_on   = GravityComp_on;
+Q_on    = Quat_on;
 lastUpdate = 0;
 updateStep = 0.0; %traj.dt;   % TODO larger?
 tau = zeros(1,nJoints);

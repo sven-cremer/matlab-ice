@@ -5,7 +5,7 @@ global Pgain Dgain na;
 global lastUpdate updateStep;
 global tau;
 global data;
-global NN_off GC_on
+global NN_off GC_on Q_on
 global counter;
 
 % From main:
@@ -41,8 +41,14 @@ xdd_m_ = interp1(traj.t, traj.xdd, t)';
 %% Get current robot state
 J = robot.jacobn(q);
 T = robot.fkine(q);
-xC  = [transl(T); tr2rpy(T)'];
 xdC = J * qd';
+
+if(Q_on)
+    xC  = [transl(T); tform2quat(T)'];
+    xdC = [xdC(1:3); tform2quat(rpy2tr(xdC(4:6)'))' ];
+else
+    xC  = [transl(T); tr2rpy(T)'];
+end
 
 %% Compute control force
 if(NN_off)
@@ -61,7 +67,9 @@ else
     %--------------------------
     % Neuroadaptive controller
     
-    f_h    = zeros(6,1);
+    nCart = 6 + Q_on;
+    
+    f_h = zeros(nCart,1);
     
     tmp = [];
     %{
@@ -85,6 +93,11 @@ else
     
     na = update(na, q', qd', xC, xdC, x_m_, xd_m_, xdd_m_, f_h, delT, tmp);
     fc = na.fc;
+    
+    if(Q_on)
+        T = quat2tform(na.fc(4:7)');
+        fc = [na.fc(1:3); tr2rpy(T)'];
+    end
     
     %{
     fc_exp = na.fc_exp;

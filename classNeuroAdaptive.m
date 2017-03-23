@@ -61,22 +61,22 @@ classdef classNeuroAdaptive
     
     methods     % constructor method
                 
-        function o = classNeuroAdaptive(nJoints, nCart, nHidden, nOutput)
-            % nJoints : number of robot joints
-            % nCart   : number of Cartesian coordinates of the input and
+        function o = classNeuroAdaptive(nJoints, nCart, nHidden)
+            % nJoints : Number of robot joints
+            % nCart   : Number of Cartesian coordinates of the input and
             %           error signals, for example
             %            2 -> xy plane without rotation
             %            6 -> x,y,z and roll,pitch,yaw
             %            7 -> x,y,z and quaternion rotation
-            % nHidden : number of nodes in the NN hidden layer
-            % nOutput : number of NN output nodes, usually same as nCart 
+            %           Also determines the number of NN output nodes.
+            % nHidden : Number of nodes in the NN hidden layer.
             
             o.nJoints = nJoints;
             o.nCart   = nCart;
             
             o.nInp = nJoints*2 + nCart*7;   % Depends on NN input vector y
             o.nHid = nHidden;
-            o.nOut = nOutput;
+            o.nOut = nCart;
             
             o.b = 1;    % Bias unit
             
