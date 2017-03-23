@@ -82,14 +82,14 @@ classdef classData
             data.f_hat_  = zeros(N,nOut);
             data.f_act_  = zeros(N,nOut);
             data.fc_     = zeros(N,nOut);
-            data.tau_    = zeros(N,nOut);
+            data.tau_    = zeros(N,nJoints);
             data.fc_exp  = zeros(N,nOut);
-            data.tau_exp = zeros(N,nOut);
+            data.tau_exp = zeros(N,nJoints);
             
             data.x_      = zeros(N,nOut);
             data.xd_     = zeros(N,nOut);
-            data.q_      = zeros(N,nOut);
-            data.qd_     = zeros(N,nOut);
+            data.q_      = zeros(N,nJoints);
+            data.qd_     = zeros(N,nJoints);
             
             data.fh_     = zeros(N,1);           
             data.x_h_    = zeros(N,1);
