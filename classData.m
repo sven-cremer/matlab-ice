@@ -30,6 +30,7 @@ classdef classData
         
         % Robot state
         nJoints;
+        nOut;
         x_;    % Cartesian pose
         xd_;   % Cartesian velocity
         q_;    % Joint position
@@ -60,6 +61,8 @@ classdef classData
             end
             if ~exist('nOut','var') || isempty(nOut)
                 nOut = 6;
+            else
+                data.nOut = nOut;
             end
             if ~exist('nJoints','var') || isempty(nJoints)
                 data.nJoints = nOut;
@@ -200,7 +203,11 @@ classdef classData
             s = [];
             
             if( var(1) == 'x'  || var(1) == 'f' )
-                l = {'x [m]','y [m]','z [m]','roll [rad]','pitch [rad]','yaw [rad]'};
+                if(data.nOut == 7)
+                    l = {'x [m]','y [m]','z [m]','qw','qx','qy','qz'};
+                else
+                    l = {'x [m]','y [m]','z [m]','roll [rad]','pitch [rad]','yaw [rad]'};
+                end
                 s = l(idx);
                 return;
             end

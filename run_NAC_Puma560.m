@@ -98,7 +98,6 @@ toc
 
 %% Neuroadpative controller
 global na
-output = nCart;
 hidden = 10;
 na = classNeuroAdaptive(nJoints,nCart,hidden)
 na.PED_on = 1;
@@ -127,7 +126,7 @@ Dgain = [10 20 50 5 5 5];
 
 %% Storing data
 global data
-data = classData(round(0.5*N),output,nJoints); % TODO actually < N
+data = classData(round(0.5*N),nCart,nJoints); % TODO actually < N
 
 %% Start simulation
 global NN_off GC_on Q_on
@@ -152,8 +151,11 @@ fprintf('Data points: %d\n',data.idx);
 
 %% Compute Cartesian path
 T = p560.fkine(q_sim);
-x_sim = [transl(T), tr2rpy(T)];
-
+if(Quat_on)
+    x_sim = [transl(T), tform2quat(T)];
+else
+    x_sim = [transl(T), tr2rpy(T)];
+end
 %% Cartesian error
 x_int = interp1(traj.t, traj.x, t_sim );
 err_c = sqrt(sum(abs(x_sim - x_int).^2,2));
@@ -268,12 +270,14 @@ plotWeights(na, [-0.01 0.01])
 colorbar;
 
 figure
-imagesc(na.rbf_mu')
-title('RBF mu')
+imagesc(na.rbf_mu)
+title('RBF mu for activation function sigma(z)')
+xlabel('mu_j for hidden layer node j');ylabel('mu(i) for input value z(i)');
 
 figure;
-grid on;
 plot(1000.*diff(t_sim))
+grid on;
+title('ODE simulation step size')
 ylabel('Time step [ms]'); xlabel('ODE iteration number');
 
 %% Save figures and results
