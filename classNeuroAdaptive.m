@@ -5,6 +5,10 @@ classdef classNeuroAdaptive
     properties
         % Public properties
         
+        nJoints;    % Number of joints
+        nCart;      % Number of Cartesian coordinates, 7 implies the use of 
+                    % quaternions instead of Euler angles
+        
         % NN weights
         V;	% Inner weights, [nInp x nHid]
         W;  % Outer weights, [nHid x nOut]
@@ -56,10 +60,21 @@ classdef classNeuroAdaptive
     end
     
     methods     % constructor method
-        
-        function o = classNeuroAdaptive(nInput, nHidden, nOutput)
+                
+        function o = classNeuroAdaptive(nJoints, nCart, nHidden, nOutput)
+            % nJoints : number of robot joints
+            % nCart   : number of Cartesian coordinates of the input and
+            %           error signals, for example
+            %            2 -> xy plane without rotation
+            %            6 -> x,y,z and roll,pitch,yaw
+            %            7 -> x,y,z and quaternion rotation
+            % nHidden : number of nodes in the NN hidden layer
+            % nOutput : number of NN output nodes, usually same as nCart 
             
-            o.nInp = nInput;
+            o.nJoints = nJoints;
+            o.nCart   = nCart;
+            
+            o.nInp = nJoints*2 + nCart*7;   % Depends on NN input vector y
             o.nHid = nHidden;
             o.nOut = nOutput;
             
@@ -76,8 +91,8 @@ classdef classNeuroAdaptive
             
             
             % Controller parameters
-            o.Kv     = 10  *eye(o.nOut) ;
-            o.lam    = 20  *eye(o.nOut) ;
+            o.Kv     = 10  *eye(o.nCart) ;
+            o.lam    = 20  *eye(o.nCart) ;
             o.F      = 100 *eye(o.nHid+o.b) ;
             o.G      = 100 *eye(o.nInp+o.b) ;
             
@@ -91,11 +106,11 @@ classdef classNeuroAdaptive
             o.fc_exp = 0;
                        
             % Prescribed error dynamics
-            o.Kd     = 20.0 *eye(o.nOut);
-            o.Dd     = 10.0 *eye(o.nOut);
-            o.fl     = zeros(o.nOut,1);
-            o.gamma  = 9.5 *eye(o.nOut);
-            o.lambda = 0.5 *eye(o.nOut);
+            o.Kd     = 20.0 *eye(o.nCart);
+            o.Dd     = 10.0 *eye(o.nCart);
+            o.fl     = zeros(o.nCart,1);
+            o.gamma  = 9.5 *eye(o.nCart);
+            o.lambda = 0.5 *eye(o.nCart);
             
             % Flags          
             o.NN_on  = 1;
