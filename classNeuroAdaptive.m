@@ -16,13 +16,13 @@ classdef classNeuroAdaptive
         b;  % Bias unit (0 or 1)
         
         % Controller parameters
-        Kv;
-        lam;
-        F;
-        G;
-        kappa;
-        Kz;
-        Zb;
+        Kv;     % "Derivative" term, i.e. Kv*r= Kv*ed + Kv*lam*e
+        lam;    % "Proportional" term
+        G;      % Positive definite design matrix for inner layer (V)
+        F;      % Positive definite design matrix for outer layer (W)
+        kappa;  % Gain of e-modification terms
+        Kz;     % Gain of robustifying term
+        Zb;     % Bound for NN weight error part of robustifying term
         
         % Error variables
         e;      % Reference tracking error
@@ -87,21 +87,21 @@ classdef classNeuroAdaptive
             
             % Initialize random NN weights on the interval [a, b]
             %rng(0)
-            a = -0.5;
-            b =  0.5;
+            a = -0.01;
+            b =  0.01;
             o.W = a + (b-a).*rand( o.nHid+o.b, o.nOut );
-            %o.V = a + (b-a).*rand( o.nInp, o.nHid );
+            o.V = a + (b-a).*rand( o.nInp+o.b, o.nHid );
             %o.W = zeros( o.nHid, o.nOut );     %<- Could be unstable?
-            o.V = zeros( o.nInp+o.b, o.nHid);
+            %o.V = zeros( o.nInp+o.b, o.nHid);  %<- Results in 1 node
             
             
             % Controller parameters
             o.Kv     = 10  *eye(o.nCart) ;
             o.lam    = 20  *eye(o.nCart) ;
-            o.F      = 100 *eye(o.nHid+o.b) ;
+            o.F      = 10  *eye(o.nHid+o.b) ;     % Inner and outer should learn at different rates
             o.G      = 100 *eye(o.nInp+o.b) ;
             
-            o.kappa  = 0.001;
+            o.kappa  = 0.01;
             o.Kz     = 0.05;
             o.Zb     = 100;
             
@@ -124,11 +124,11 @@ classdef classNeuroAdaptive
             
             % Flags          
             o.NN_on  = 1;
-            o.PED_on = 1;
+            o.PED_on = 0;
             o.RB_on  = 1;
             
             % Activation function
-            o.actFncs = struct('Sigmoid',1,'Tanh',2,'RBF',3); 
+            o.actFncs = struct('Sigmoid',1,'Tanh',2,'RBF',3,'RBF2',4); 
             o.actF = o.actFncs.RBF;
             
             % For sigma(z)
@@ -156,6 +156,7 @@ classdef classNeuroAdaptive
             %o.rbf_mu = rand( o.nHid, o.nHid ); % Unstable, needs many nodes ?
             o.rbf_mu = randi([0 1], o.nHid, o.nHid ); % [0,+/-1], [-1,0,1]  perform similarly
             o.rbf_mu(o.rbf_mu == 0) = -1; % Best result
+            o.rbf_mu = zeros( o.nHid, o.nHid );
 
             % Compute average distance between centers mu_j
             D = dist(o.rbf_mu); % The Euclidean distance between two vectors Mu(:,i) and Mu(:,j) is calculated as D(i,j)
@@ -278,6 +279,12 @@ classdef classNeuroAdaptive
                         g(i,1) = exp( - o.rbf_beta * norm(z-o.rbf_mu(:,i))^2 ); % Note: ||x||^2 is the same as (x'*x)
                     end
                     
+                case o.actFncs.RBF2
+                    g = zeros(o.nHid,1);
+                    for i=1:o.nHid
+                        g(i,1) = exp( - o.rbf_beta * (z'*z) );
+                    end
+                    
                 otherwise
                     fprintf('Invalid activation function!\n');
                     g = [];
@@ -300,6 +307,13 @@ classdef classNeuroAdaptive
                     for i=1:o.nHid
                         x = z-o.rbf_mu(:,i);
                         g(:,i) = -2*o.rbf_beta*abs(x)*exp( - o.rbf_beta * norm(x)^2 ); % TODO row or col?
+                        %g(:,i) = (-2*o.rbf_beta).*x.*exp( - o.rbf_beta * norm(x)^2 ); % Unstable
+                    end
+
+                case o.actFncs.RBF2
+                    g = zeros(o.nHid,o.nHid);
+                    for i=1:o.nHid
+                        g(:,i) = (-2*o.rbf_beta).*z.*exp( - o.rbf_beta * (z'*z) );
                     end
                     
                 otherwise
