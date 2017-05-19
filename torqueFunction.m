@@ -50,6 +50,19 @@ else
     xC  = [transl(T); tr2rpy(T)'];
 end
 
+%% Compute "continuous" error
+data.x_err_(data.idx,:) = x_m_' - xC';
+
+T_des = eul2tr(x_m_(4:6)');  % Euler angle to homogeneuos transform
+r_des = tr2rt(T_des);        % Get rotation matrix
+r_act = tr2rt(T);
+
+r_err = 0.5 * ( cross( r_des(:,1), r_act(:,1) ) + ...
+                cross( r_des(:,2), r_act(:,2) ) + ...
+                cross( r_des(:,3), r_act(:,3) ) );
+%fprintf('Norm x_err: %f  vs  %f\n',norm(x_m_(4:6)-xC(4:6)),norm(r_err));
+xC(4:6) = x_m_(4:6) - r_err;    % x_m_ is smooth, r_err is small
+
 %% Compute control force
 if(NN_off)
     %--------------------------
