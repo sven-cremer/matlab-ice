@@ -49,6 +49,12 @@ classdef classData
         xd_m_;
         %xdd_m_t;
         
+        % Cartesian error
+        x_err_; % Interpolated ref traj minus simulated
+        x_nn_e_;
+        x_nn_ed_;
+        x_nn_r_;
+        
     end
         
     methods     % constructor method
@@ -101,6 +107,11 @@ classdef classData
             data.x_m_    = zeros(N,nOut);
             data.xd_m_   = zeros(N,nOut);
             %data.xdd_m_  = zeros(N,numOut);
+            
+            data.x_err_   = zeros(N,nOut);
+            data.x_nn_e_  = zeros(N,nOut);
+            data.x_nn_ed_ = zeros(N,nOut);
+            data.x_nn_r_  = zeros(N,nOut);
             
             data.ode_t   = []; % Unknown size
             data.ode_x_  = [];
@@ -176,7 +187,7 @@ classdef classData
                     plot(t, y(:,i),varargin{:})
                     %plot(data.t, data.tau_exp_(:,i),':r')
                     
-                    %xlim([0 0.5]); ylim([-pi pi]);
+                    %xlim([0 0.5]);% ylim([-pi pi]);
                     
                     xlabel('Time [s]');
                     ylabel(data.getLabel(str,i))
@@ -229,21 +240,37 @@ classdef classData
         function s = getTitle(data, var)
             
             s = [];
+            N = length(var);
             
             if( var(1) == 'x' )
                 if(var(2) == 'd')
                     s = 'Cartesian Velocity';
                 else
                     s = 'Cartesian Pose';
-                end               
+                end
             elseif( var(1) == 'q' )
                 if(var(2) == 'd')
                     s = 'Joint Velocity';
                 else
                     s = 'Joint Position';
-                end            
+                end
             else
                 s = strrep(var,'_','\_');
+            end
+            
+            if(N > 4)
+                if( strcmp(var(1:4),'x_nn') )
+                    s = 'NN error: ';
+                    if(var(7) == 'd')
+                        s = [s,'velocity'];
+                    elseif(var(6) == 'e')
+                        s = [s,'position'];
+                    elseif(var(6) == 'r')
+                        s = [s,'sliding mode'];
+                    end
+                elseif( strcmp(var(1:4),'x_er') )
+                    s = 'Reference error';
+                end
             end
             
         end
