@@ -9,6 +9,9 @@ plotData        = 1;
 saveFigures     = 0;
 animateRobot    = 1;
 plotNNweights   = 0;
+generateTraj    = 1;
+
+trajName = 'circ_27deg';
 
 NN_on           = 1;    % If 0, then PID is on
 GravityComp_on  = 1;    % TODO turn off
@@ -26,96 +29,112 @@ nJoints = p560.n;
 nCart   = 6+Quat_on;
 
 %% Reference trajectory
-tic
-fprintf('\nGenerating reference trajectory ...\n')
-%Tz = p560.fkine(qz);     % L position
-%Tr = p560.fkine(qr);     % Vertical
-%Ts = p560.fkine(qs);     % Horizontal
 
-%q0 = [0 -20 -20 0 0 0] .* pi/180
-%q1 = [0 -23 -23 0 0 0] .* pi/180
-%T0 = p560.fkine(q0)
-%T1 = p560.fkine(q1)
+% Create folders
+trajDir = 'data_traj';
+if ~exist(trajDir, 'dir')
+    mkdir(trajDir);
+end
+trajPath = [trajDir,'/',trajName,'.mat'];
 
-global traj
+if(generateTraj)
+    tic
+    fprintf('\nGenerating reference trajectory ...\n')
+    %Tz = p560.fkine(qz);     % L position
+    %Tr = p560.fkine(qr);     % Vertical
+    %Ts = p560.fkine(qs);     % Horizontal
+    
+    %q0 = [0 -20 -20 0 0 0] .* pi/180
+    %q1 = [0 -23 -23 0 0 0] .* pi/180
+    %T0 = p560.fkine(q0)
+    %T1 = p560.fkine(q1)
+    
+    global traj
+    
+    traj = classRefTraj(nJoints,nCart);
+    
+    dt  = 0.001;     % Main trajectory step time
+    tf  = 10;        % Main trajectory execution time
+    dtS = 2.0;       % Start position hold time
+    dtF = 4.0;       % Final position hold time
+    
+    x0 = [0.4; 0.0; 0.60];
+    x1 = [0.2; 0.2; 0.60];
+    xs = [-0.3; 0.3; 0.4];
+    r0 = [0,0,0];
+    %r1 = [15,5,0].*(pi/180);
+    r1 = [0,0.95*pi/2,0];
+    
+    % Use ctraj method
+    %{
+    %traj = traj.straightCtraj(p560, x0, r0, x1, r0, dt, 6);    % Fixed r, stable
+    %traj = traj.straightCtraj(p560, x1, r0, x1, r1, dt, tf);   % Fixed x, stable -> unstable
+    %traj = traj.straightCtraj(p560, x1, r1, x1, r0, dt, 7);    % Fixed x, unstable -> stable
+    traj = traj.straightCtraj(p560, x1, [0,0.5*pi/2,0], x1, [0,0.55*pi/2,0], dt, 5);
+    traj = traj.holdEndpoints(dtS,dtF+6);
 
-traj = classRefTraj(nJoints,nCart);
+    traj.plotTraj();
+    title('ctraj')
+    %traj.animateQuat();
 
-dt  = 0.001;     % Main trajectory step time
-tf  = 10;        % Main trajectory execution time
-dtS = 2.0;       % Start position hold time
-dtF = 4.0;       % Final position hold time
+    %}
+    % Hold position
+    %{
+    GravityComp_on = 0;
+    %traj.IKopt ='rdn';  % Elbow down
+    traj = traj.straightCtraj(p560, xs, r0, xs, r0, dt, 0.1);
+    traj = traj.holdEndpoints(0.9,24);
 
-x0 = [0.4; 0.0; 0.60];
-x1 = [0.2; 0.2; 0.60];
-xs = [-0.3; 0.3; 0.4];
-r0 = [0,0,0];
-%r1 = [15,5,0].*(pi/180);
-r1 = [0,0.95*pi/2,0];
+    traj.plotTraj();
+    title('ctraj')
+    %}
+    % Use jtraj method
+    %{
+    traj = traj.straightJtraj(p560, x0, r0, x1, r1, dt, tf);
+    traj = traj.holdEndpoints(dtS,dtF);
 
-% Use ctraj method
-%{
-%traj = traj.straightCtraj(p560, x0, r0, x1, r0, dt, 6);    % Fixed r, stable
-%traj = traj.straightCtraj(p560, x1, r0, x1, r1, dt, tf);   % Fixed x, stable -> unstable
-%traj = traj.straightCtraj(p560, x1, r1, x1, r0, dt, 7);    % Fixed x, unstable -> stable
-traj = traj.straightCtraj(p560, x1, [0,0.5*pi/2,0], x1, [0,0.55*pi/2,0], dt, 5);
-traj = traj.holdEndpoints(dtS,dtF+6);
-
-traj.plotTraj();
-title('ctraj')
-%traj.animateQuat();
-%}
-% Hold position
-% {
-GravityComp_on = 0;
-%traj.IKopt ='rdn';  % Elbow down
-traj = traj.straightCtraj(p560, xs, r0, xs, r0, dt, 0.1);
-traj = traj.holdEndpoints(0.9,24);
-
-traj.plotTraj();
-title('ctraj')
-% }
-% Use jtraj method
-%{
-traj = traj.straightJtraj(p560, x0, r0, x1, r1, dt, tf);
-traj = traj.holdEndpoints(dtS,dtF);
-
-traj.plotTraj();
-title('jtraj')
-%}
-%{
-% Circular reference trajectory
-radius = 0.10;
-%rs = [0 -pi/2 0];    % Unstable
-%rs = [0 -pi*0.19 0]; % Threshold
- rs = [0 -pi*0.3 0];
-%rs = [0 0 0];
-
-traj = traj.circular(p560, xs, rs, radius, dt, tf+4); % 14
-%traj = traj.holdEndpoints(dtS,dtF);    % TODO remove discontinuity
-
-traj.plotTraj();
-title('circle')
-%}
-drawnow
-N = traj.N;
+    traj.plotTraj();
+    title('jtraj')
+    %}
+    % {
+    % Circular reference trajectory
+    radius = 0.10;
+    %rs = [0 -pi/2 0];    % Unstable
+    %rs = [0 -pi*0.19 0]; % Threshold
+    rs = [0 -pi*0.15 0];
+    %rs = [0 0 0];
+    
+    traj = traj.circular(p560, xs, rs, radius, dt, tf+4); % 14
+    %traj = traj.holdEndpoints(dtS,dtF);    % TODO remove discontinuity
+    
+    traj.plotTraj();
+    title('circle')
+    %}
+    
+    toc;
+    drawnow
+    save(trajPath,'traj');
+else
+    fprintf('\nLoading reference trajectory: %s\n', trajPath)
+    load(trajPath);
+end
 fprintf('Total simulation time: %.1f sec (%d steps for dt=%.4f)\n',traj.tf, traj.N, traj.dt)
-toc
+
 %traj.animateTraj(p560); return
 
 %% Neuroadpative controller
 global na
 hidden = 10;
 na = classNeuroAdaptive(nJoints,nCart,hidden)
-na.PED_on = 1;
+%na.PED_on = 1;
 na.RB_on  = 1;
 na.NN_on  = 1;
 %fprintf(' Inputs: %d\n Hidden: %d\n Outputs: %d\n',input,hidden,output)
 
-%na.Kv  = diag([2,2,2, 0.01,0.01,0.01]);
-%na.lam = diag([20,20,20, 0.1,0.1,0.1]);
-na.Kv  = diag([2,2,2, 1,1,1]);
-na.lam = diag([20,20,20, 10,10,10]);
+na.Kv  = diag([2,2,2, 0.01,0.01,0.01]);
+na.lam = diag([20,20,20, 0.1,0.1,0.1]);
+%na.Kv  = 0.1.*diag([2,2,2, 1,1,1]);
+%na.lam = 0.1.*diag([20,20,20, 10,10,10]);
 %na.Kd  = diag([10,10,10, 5,5,5]);
 %na.Dd  = diag([2,2,2, 1,1,1]);
 
@@ -133,7 +152,7 @@ Dgain = [10 20 50 5 5 5];
 
 %% Storing data
 global data
-data = classData(round(0.5*N),nCart,nJoints); % TODO actually < N
+data = classData(round(0.5*traj.N),nCart,nJoints); % TODO actually < N
 
 %% Start simulation
 global NN_off GC_on Q_on
