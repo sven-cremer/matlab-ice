@@ -165,7 +165,7 @@ else
 end
 %% Cartesian error
 x_int = interp1(traj.t, traj.x, t_sim );
-err_c = sqrt(sum(abs(x_sim - x_int).^2,2));
+err_c = sqrt(sum(abs(x_sim - x_int).^2,2)); % Error norm
 
 err_c_tot = sum(err_c);
 fprintf('Total Cartesian error:\t\t%.1f\n',err_c_tot);
@@ -174,9 +174,9 @@ fprintf('Total Cartesian error:\t\t%.1f\n',err_c_tot);
 M = size(x_sim,1);
 err_cm = zeros(M,1);
 for i=1:M
-    dif = traj.x - repmat(x_sim(i,:),N,1);   % Difference
+    dif = traj.x - repmat(x_sim(i,:),traj.N,1);  % Difference
     nor = sqrt(sum(abs(dif).^2,2));         % Norms
-    err_cm(i) = min( nor );                  % Take the value closest to x_ref 
+    err_cm(i) = min( nor );                 % Take the value closest to x_ref 
 end
 fprintf('Total Cartesian error (MIN):\t%.1f\n',sum(err_cm));
 
@@ -184,6 +184,7 @@ figure; hold on; grid on;
 plot(t_sim, err_c,'-b');
 plot(t_sim, err_cm,'--r');
 grid on;
+legend('Error at time t', 'Min error ignoring time');
 title(sprintf('Cartesian Error Norm (total: %.1f)',err_c_tot))
 
 %% Joint error
@@ -195,12 +196,15 @@ fprintf('Total joint error:\t\t%.0f\n',err_j_tot);
 
 % Minimum error (ignoring time)
 M = size(q_sim,1);
-err_jm = zeros(M,1);
-for i=1:M
-    dif = traj.q - repmat(q_sim(i,:),N,1);   % Difference
-    nor = sqrt(sum(abs(dif).^2,2));         % Norms
-    err_jm(i) = min( nor );                  % Take the value closest to x_ref 
+err_jm = zeros(M,nJoints);
+for j=1:nJoints
+    for i=1:M
+        dif = traj.q(j) - repmat(q_sim(i,j),traj.N,1);  % Difference
+        nor = sqrt(sum(abs(dif).^2,2));            % Norms
+        err_jm(i,j) = min( nor );                  % Take the value closest to x_ref
+    end
 end
+err_jm = sum(err_jm,2);
 fprintf('Total joint error (MIN):\t%.0f\n',sum(err_jm));
 
 figure; hold on; grid on;
@@ -240,6 +244,14 @@ end
 
 %plotVariable(data,'q_')
 %plotVariable(data,'qd_')
+
+% Ref trajectory error
+plotVariable(data,'x_err_')
+
+% NN errors
+plotVariable(data,'x_nn_e_')
+plotVariable(data,'x_nn_ed_')
+plotVariable(data,'x_nn_r_')
 
 % Cartesian pose
 plotVariable(data,'x_')

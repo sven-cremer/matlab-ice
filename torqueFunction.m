@@ -152,6 +152,13 @@ data.qd_     (k,:) = qd';
 data.x_m_    (k,:) = x_m_';
 data.xd_m_   (k,:) = xd_m_';
 
+data.tau_    (k,:) = tau';
+
+if(~NN_off)
+data.x_nn_e_ (k,:) = na.e';
+data.x_nn_ed_(k,:) = na.ed';
+data.x_nn_r_ (k,:) = na.r';
+
 data.normW_  (k,:) = norm(na.W);
 data.normV_  (k,:) = norm(na.V);
 
@@ -160,10 +167,9 @@ data.f_hat_  (k,:) = na.f_hat';
 data.f_act_  (k,:) = na.f_act';
 data.fc_     (k,:) = na.fc';
 data.fc_exp  (k,:) = na.fc_exp';
-data.tau_    (k,:) = tau';
 data.lambda_ (k,:) = diag(na.lambda)';
 data.gamma_  (k,:) = diag(na.gamma)';
-
+end
 data.idx = k + 1;
 
 %% Display NN weights
