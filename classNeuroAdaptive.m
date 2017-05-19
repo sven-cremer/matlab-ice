@@ -24,6 +24,11 @@ classdef classNeuroAdaptive
         Kz;
         Zb;
         
+        % Error variables
+        e;      % Reference tracking error
+        ed;     % Reference velocity error
+        r;      % Sliding mode error
+        
         % Output
         f_hat;  % NN output
         f_act;  % Actual value for f_hat
@@ -74,7 +79,7 @@ classdef classNeuroAdaptive
             o.nJoints = nJoints;
             o.nCart   = nCart;
             
-            o.nInp = nJoints*2 + nCart*7;   % Depends on NN input vector y
+            o.nInp = nJoints*2 + nCart*5;   % Depends on NN input vector y
             o.nHid = nHidden;
             o.nOut = nCart;
             
@@ -99,6 +104,11 @@ classdef classNeuroAdaptive
             o.kappa  = 0.001;
             o.Kz     = 0.05;
             o.Zb     = 100;
+            
+            % Error variables
+            o.e  = zeros(o.nCart,1);
+            o.ed = zeros(o.nCart,1);
+            o.r  = zeros(o.nCart,1);
             
             % Output
             o.f_hat  = 0;
@@ -178,8 +188,8 @@ classdef classNeuroAdaptive
             % Neuroadaptive controller update step (robot is optional)
             
             % Tracking errors
-            e  = x_m  - x   ;
-            ed = xd_m - xd  ;
+            o.e  = x_m  - x   ;
+            o.ed = xd_m - xd  ;
             
             % Prescribed Error dynamics
             if(o.PED_on)
@@ -191,16 +201,16 @@ classdef classNeuroAdaptive
                 fl_dot = fh - o.gamma * o.fl;
                 o.fl = o.fl + fl_dot * dt;
                 
-                r  = ed  + o.lambda*e - o.fl;   % Sliding mode error
+                o.r  = o.ed  + o.lambda*o.e - o.fl;   % Sliding mode error
             else 
-                r  = ed  + o.lam*e ;            % Sliding mode error            
+                o.r  = o.ed  + o.lam*o.e ;            % Sliding mode error            
             end
             
             % Robustifying term
             if(o.RB_on)
                 Z = [ o.W, zeros(o.nHid+o.b, o.nHid)
                     zeros(o.nInp+o.b, o.nOut), o.V ];
-                v = - o.Kz*(norm(Z) + o.Zb)*r;
+                v = - o.Kz*(norm(Z) + o.Zb)*o.r;
             else
                 v = zeros(o.nOut,1);
             end
@@ -208,8 +218,8 @@ classdef classNeuroAdaptive
             % Input to NN
             %y = [ e; ed; x; xd; x_m; xd_m; xdd_m; q; qd ];
             %y = [ o.fl; fl_dot; diag(o.lambda); diag(lambda_dot); q; qd; e; ed; x_m; xd_m];
-            y = [ diag(o.lambda); diag(lambda_dot); q; qd; e; ed; x_m; xd_m; xdd_m];
-            %y= [q; qd; e; ed; x_m; xd_m];
+            %y = [ diag(o.lambda); diag(lambda_dot); q; qd; e; ed; x_m; xd_m; xdd_m];
+            y= [q; qd; o.e; o.ed; x_m; xd_m; xdd_m];
             if(o.b)
                 y = [y;1];
             end
@@ -219,15 +229,15 @@ classdef classNeuroAdaptive
             o.f_hat = o.W'*S;
             
             % Control force
-            o.fc = o.Kv*r + (o.f_hat - v).*(o.NN_on);
+            o.fc = o.Kv*o.r + (o.f_hat - v).*(o.NN_on);
             
             % Expected Control force
             if exist('robot','var') && ~isempty(robot)
                 Mx = robot.Mx;
                 Cx = robot.Cx;
                 Gx = robot.Gx;
-                o.f_act = Mx*( xdd_m + o.lam*ed ) + Cx*( xd_m + o.lam*e ) + Gx;
-                o.fc_exp = o.Kv*r + o.f_act - v;
+                o.f_act = Mx*( xdd_m + o.lam*o.ed ) + Cx*( xd_m + o.lam*o.e ) + Gx;
+                o.fc_exp = o.Kv*o.r + o.f_act - v;
             else
                 o.f_act  = zeros(o.nOut,1);
                 o.fc_exp = zeros(o.nOut,1);
@@ -239,11 +249,11 @@ classdef classNeuroAdaptive
             end
             
             % W update
-            W_dot = o.F*S*r' - o.kappa*o.F*norm(r)*o.W;
+            W_dot = o.F*S*o.r' - o.kappa*o.F*norm(o.r)*o.W;
             
             % V update
             dS = o.activationPrime(o.V'*y);
-            V_dot = o.G*y*(dS'*o.W*r)' - o.kappa*o.G*norm(r)*o.V;
+            V_dot = o.G*y*(dS'*o.W*o.r)' - o.kappa*o.G*norm(o.r)*o.V;
             
             % V_dot = G*y*((diag(sigmoid(V'*y))*(eye(length(V'*y)) - diag(sigmoid(V'*y))))'*W*r)' ...
             %         - kappa*G*norm(r)*V;
